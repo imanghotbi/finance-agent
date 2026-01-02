@@ -2,7 +2,7 @@ from urllib.parse import quote_plus
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
-from typing import Optional
+from typing import Optional , Dict
 
 
 
@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     log_file_path:str = "logs/app.log"
     log_max_bytes:int = 30 * 1024 * 1024 #30 MB
     log_backup_count:int = 5
+
+    #crawl info
+    default_headers:Dict[str,str] = {'sec-ch-ua-mobile': '?0','sec-fetch-dest': 'empty','sec-fetch-mode': 'cors','sec-fetch-site': 'same-origin','user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36'}
+    rahavard_base_url:str = "https://rahavard365.com/api/v2/"
+    sahamyab_base_url:str = "https://www.sahamyab.com/"
 
     @property
     def mongo_uri(self):

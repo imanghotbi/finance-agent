@@ -1,6 +1,5 @@
 import asyncio
 import json
-import urllib.parse
 from datetime import datetime, timezone, date
 from typing import Dict, Optional, Any, List, Union
 import logging
@@ -19,19 +18,9 @@ from tenacity import (
 try:
     from logger import logger
 except ImportError:
-    # Fallback if logger.py isn't present
     logger = logging.getLogger("Finance Agent System")
     logging.basicConfig(level=logging.INFO)
-
-# Constants
-BASE_URL = "https://rahavard365.com/api/v2"
-DEFAULT_HEADERS = {
-    'sec-ch-ua-mobile': '?0',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
-}
+from config import settings
 
 class RahavardError(Exception):
     """Custom exception for Rahavard API related errors."""
@@ -41,14 +30,16 @@ class RahavardClient:
     """
     Async client for interacting with the Rahavard365 API.
     """
-    def __init__(self, timeout: int = 30):
+    def __init__(self, base_url:str=settings.rahavard_base_url ,timeout: int = 30):
         self.timeout = ClientTimeout(total=timeout)
         self.session: Optional[ClientSession] = None
+        self.base_url = base_url
 
     async def __aenter__(self):
         connector = TCPConnector(limit=100)
         self.session = ClientSession(
-            headers=DEFAULT_HEADERS, 
+            headers=settings.default_headers, 
+            base_url=self.base_url,
             timeout=self.timeout,
             connector=connector
         )
@@ -70,11 +61,11 @@ class RahavardClient:
         Internal method to handle HTTP requests with Tenacity retry logic.
         """
         if self.session is None:
-            self.session = ClientSession(headers=DEFAULT_HEADERS, timeout=self.timeout)
+            self.session = ClientSession(headers=settings.default_headers, base_url=self.base_url, timeout=self.timeout)
 
-        url = f"{BASE_URL}/{endpoint}" if not endpoint.startswith("http") else endpoint
+        url = endpoint
         
-        logger.debug(f"Requesting: {method} {url} | Params: {params}")
+        logger.debug(f"Requesting: {method} {self.base_url}/{endpoint} | Params: {params}")
 
         async with self.session.request(method, url, params=params) as response:
             if response.status != 200:

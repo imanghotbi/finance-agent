@@ -2,3 +2,7 @@ motor
 pydantic-settings
 aiohttp
 tenacity 
+pandas
+numpy
+TA-Lib
+scipy

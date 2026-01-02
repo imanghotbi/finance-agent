@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     rapid_api_host:str = "twitter154.p.rapidapi.com"
     rapid_base_url:str = "https://twitter154.p.rapidapi.com/search/"
     proxy_url:str
+    tavily_base_url:str = "https://api.tavily.com/"
+    tavily_api_key:SecretStr
 
     @property
     def mongo_uri(self):

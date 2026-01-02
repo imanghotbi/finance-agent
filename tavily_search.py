@@ -174,27 +174,3 @@ class TavilyClient:
         except Exception as e:
             logger.error(f"Tavily search failed for query '{query}': {e}")
             return {}
-
-async def main():
-    query_str = "تحلیل بنیادی و تکنیکال و بررسی نماد بورسی فملی یا صنایع ملی مس ایران"
-    
-    async with TavilyClient(api_key=settings.tavily_api_key.get_secret_value() , base_url=settings.tavily_base_url , proxy_url=settings.proxy_url) as client:
-        
-        result = await client.search(
-            query=query_str,
-            start_date="2025-12-01",
-            end_date="2026-01-02",
-            country="iran"
-        )
-        
-        # 1. Print AI Generated Answer
-        print("\n--- AI Answer ---")
-        print(result.get("answer"))
-
-        # 2. Print Sources
-        print("\n--- Top Sources ---")
-        for res in result.get("results", [])[:3]:
-            print(f"- [{res.get('score')}] {res.get('title')}: {res.get('url')}")
-
-if __name__ == '__main__':
-    asyncio.run(main())

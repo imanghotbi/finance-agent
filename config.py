@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     default_headers:Dict[str,str] = {'sec-ch-ua-mobile': '?0','sec-fetch-dest': 'empty','sec-fetch-mode': 'cors','sec-fetch-site': 'same-origin','user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36'}
     rahavard_base_url:str = "https://rahavard365.com/api/v2/"
     sahamyab_base_url:str = "https://www.sahamyab.com/"
+    rapid_api_key:SecretStr
+    rapid_api_host:str = "twitter154.p.rapidapi.com"
+    rapid_base_url:str = "https://twitter154.p.rapidapi.com/search/"
+    proxy_url:str
 
     @property
     def mongo_uri(self):

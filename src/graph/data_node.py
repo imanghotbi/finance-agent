@@ -2,9 +2,9 @@ import asyncio
 from datetime import datetime
 from typing import Optional
 
-from mongo_manger import MongoManager
-from prepare_data import StockAnalysisPipeline
-from logger import logger
+from src.core.mongo_manger import MongoManager
+from src.services.prepare_data import StockAnalysisPipeline
+from src.core.logger import logger
 
 async def should_run_pipeline(symbol: str) -> bool:
     """

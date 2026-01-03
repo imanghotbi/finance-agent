@@ -16,11 +16,11 @@ from tenacity import (
 )
 
 try:
-    from logger import logger
+    from src.core.logger import logger
 except ImportError:
     logger = logging.getLogger("Finance Agent System")
     logging.basicConfig(level=logging.INFO)
-from config import settings
+from src.core.config import settings
 
 class RahavardError(Exception):
     """Custom exception for Rahavard API related errors."""

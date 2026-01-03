@@ -1,7 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import  OperationFailure , DuplicateKeyError
-from config import settings
-from logger import logger
+from src.core.config import settings
+from src.core.logger import logger
 
 class MongoManager:
     """

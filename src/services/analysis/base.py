@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-import talib
-import json
 import io
 from scipy import stats
 from abc import ABC, abstractmethod

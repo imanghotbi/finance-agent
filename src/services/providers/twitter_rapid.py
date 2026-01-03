@@ -15,12 +15,12 @@ from tenacity import (
 )
 
 try:
-    from logger import logger
+    from src.core.logger import logger
 except ImportError:
     import logging
     logger = logging.getLogger("Finance Agent System")
     logging.basicConfig(level=logging.INFO)
-from config import settings
+from src.core.config import settings
 
 
 # Custom Exception

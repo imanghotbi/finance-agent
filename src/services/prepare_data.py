@@ -3,23 +3,23 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # Import custom modules
-from config import settings
-from logger import logger
-from mongo_manger import MongoManager
+from src.core.config import settings
+from src.core.logger import logger
+from src.core.mongo_manger import MongoManager
 
 # Clients
-from rahavard import RahavardClient
-from sahamyab import SahamyabClient
-from twitter_rapid import TwitterRapidClient
-from tavily_search import TavilyClient
+from src.services.providers.rahavard import RahavardClient
+from src.services.providers.sahamyab import SahamyabClient
+from src.services.providers.twitter_rapid import TwitterRapidClient
+from src.services.providers.tavily_search import TavilyClient
 
 # Analyzers
-from trend_analyzer import TrendAnalyzer
-from oscillator_analyzer import OscillatorAnalyzer
-from volume_analyzer import VolumeAnalyzer
-from volatility_analyzer import VolatilityAnalyzer
-from sr_analyzer import SupportResistanceAnalyzer
-from spark_trend import SparklineReporter
+from src.services.analysis.trend import TrendAnalyzer
+from src.services.analysis.oscillator import OscillatorAnalyzer
+from src.services.analysis.volume import VolumeAnalyzer
+from src.services.analysis.volatility import VolatilityAnalyzer
+from src.services.analysis.sr import SupportResistanceAnalyzer
+from src.services.analysis.spark_trend import SparklineReporter
 
 class StockAnalysisPipeline:
     def __init__(self, symbol_name: str):

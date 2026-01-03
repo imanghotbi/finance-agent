@@ -2,7 +2,7 @@ import logging
 import sys
 import os
 from logging.handlers import RotatingFileHandler
-from config import settings
+from src.core.config import settings
 
 
 class LoggerSetup:

@@ -1,6 +1,6 @@
 import talib
 import numpy as np
-from base_analyzer import BaseTechnicalAnalyzer
+from src.services.analysis.base import BaseTechnicalAnalyzer
 
 
 class VolatilityAnalyzer(BaseTechnicalAnalyzer):

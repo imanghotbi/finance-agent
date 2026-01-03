@@ -6,3 +6,8 @@ pandas
 numpy
 TA-Lib
 scipy
+langchain_core
+langgraph
+langchain-openai
+langchain-nvidia-ai-endpoints
+pydantic

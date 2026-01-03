@@ -47,8 +47,6 @@ class BaseTechnicalAnalyzer(ABC):
 
         # Standardize Date Index
         if 'date' in df.columns:
-            df['date'] = df.date.str.replace('da','-')
-            df['date'] = pd.to_datetime(df['date'])
             df.set_index('date', inplace=True)
         
         df.sort_index(inplace=True)

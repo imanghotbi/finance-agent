@@ -212,37 +212,3 @@ class SahamyabClient:
         except Exception as e:
             logger.error(f"Error fetching Codal notices for {symbol}: {e}")
             return []
-
-async def main():
-    symbol_str = 'فملی'
-    
-    async with SahamyabClient() as client:
-        logger.info(f"--- Fetching Data for {symbol_str} ---")
-        
-        # Concurrent execution example
-        trade_task = client.get_trade_info(symbol_str)
-        info_task = client.get_overall_info(symbol_str)
-        codal_task = client.get_codal_notices(symbol_str)
-        
-        results = await asyncio.gather(trade_task, info_task, codal_task, return_exceptions=True)
-        trade_data, info_data, codal_data = results
-        
-        if not isinstance(trade_data, Exception):
-            logger.info(f"Trade Info P/E: {trade_data.get('pe') if trade_data else 'N/A'}")
-        
-        if not isinstance(info_data, Exception):
-            logger.info(f"Corp Name: {info_data.get('corpName') if info_data else 'N/A'}")
-            
-        if not isinstance(codal_data, Exception):
-            logger.info(f"Found {len(codal_data)} Codal notices.")
-            if codal_data:
-                logger.info(f"Latest Notice: {codal_data[0]['title']}")
-
-        # Fetch tweets separately (POST request)
-        logger.info("Fetching tweets...")
-        tweets = await client.get_tweets(symbol_str)
-        logger.info(f"Fetched {len(tweets)} tweets.")
-
-
-if __name__ == '__main__':    
-    asyncio.run(main())

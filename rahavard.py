@@ -117,7 +117,7 @@ class RahavardClient:
             types = {2: 'value', 1: 'balanced', 0: 'Growth'}
 
             result = {
-                'category': asset_info.get('category', {}).get('short_name'),
+                'sub_category': asset_info.get('category', {}).get('short_name'),
                 'name': asset_info.get('short_name'),
                 'last_trade_summary': data.get('header_last_trade'),
                 'last_trade_same_cat': data.get('same_category'),

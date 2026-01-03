@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     mongo_db_name:str
     mongo_username: Optional[str] = None
     mongo_password: Optional[SecretStr] = None
+    mongo_collection_name: str = 'market_analysis'
 
     #log info
     log_level:str = "INFO"

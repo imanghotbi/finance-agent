@@ -299,7 +299,7 @@ class StockAnalysisPipeline:
                 "rahavard_asset_id": self.rahavard_data["info"]['id'],
                 "symbol": self.rahavard_data["info"]['trade_symbol'],
                 "short_name": self.rahavard_data["info"]['short_name'],
-                "analysis_timestamp": datetime.now(),
+                "analysis_datetime": datetime.now(),
                 "data_points_analyzed": len(self.df),
                 "market_data": {
                     "current_price": current_price,

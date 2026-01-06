@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     tavily_api_key:SecretStr
 
     #model config
-    model_name:str = 'deepseek-ai/deepseek-v3.2'
+    model_name:str = 'deepseek-ai/deepseek-v3.1-terminus'
     model_api_key:SecretStr
     max_tokens:Optional[int] = 20000
     top_p:float = 0.0

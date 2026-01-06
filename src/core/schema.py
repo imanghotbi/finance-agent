@@ -199,3 +199,38 @@ class SupportResistanceAgentOutput(_BaseOut):
     key_zones: SRKeyZones
     risk_flags: List[str] = Field(default_factory=list)
     key_metrics: SRKeyMetrics = Field(default_factory=SRKeyMetrics)
+
+
+# ----------------------------
+# Aggregator Output Models
+# ----------------------------
+
+SignalBias = Literal["STRONG_BUY", "BUY", "NEUTRAL", "SELL", "STRONG_SELL"]
+
+class ConflictAlert(BaseModel):
+    agent_a: str
+    agent_b: str
+    description: str
+    severity: Literal["low", "medium", "high"]
+
+class TradeScenario(BaseModel):
+    scenario_type: Literal["continuation", "reversal", "breakout", "range_bound"]
+    probability: Literal["low", "medium", "high"]
+    description: str
+    invalidation_condition: str
+
+class TechnicalConsensus(BaseModel):
+    """Final output structure for the Technical Analysis Aggregator."""
+    signal_bias: SignalBias
+    confidence_score: float = Field(description="Confidence from 0.0 to 1.0")
+    
+    executive_summary: str = Field(description="A concise 3-sentence summary for the Portfolio Manager.")
+    technical_narrative: str = Field(description="Detailed synthesis of how the factors interact.")
+    
+    confluence_factors: List[str] = Field(description="List of factors where agents agree.")
+    conflicts: List[ConflictAlert] = Field(description="Disagreements between agents.")
+    
+    key_levels_to_watch: List[float] = Field(description="Price levels strictly filtered by confluence.")
+    scenarios: List[TradeScenario]
+    
+    primary_risk: str = Field(description="The single biggest technical threat to the thesis.")

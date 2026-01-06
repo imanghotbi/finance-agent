@@ -1,6 +1,23 @@
-from typing import Annotated, TypedDict, List, Literal, Dict, Any
-from schema import SubAgentOutput
+from typing import Any, Dict, TypedDict, Union
 
+from src.core.schema import (
+    TrendAgentOutput,
+    OscillatorAgentOutput,
+    VolatilityAgentOutput,
+    VolumeAgentOutput,
+    SupportResistanceAgentOutput,
+    TechnicalConsensus,
+)
+
+
+
+SubAgentOutput = Union[
+    TrendAgentOutput,
+    OscillatorAgentOutput,
+    VolatilityAgentOutput,
+    VolumeAgentOutput,
+    SupportResistanceAgentOutput,
+]
 
 
 class TechnicalState(TypedDict):
@@ -9,8 +26,9 @@ class TechnicalState(TypedDict):
     technical_data: Dict[str, Any]
     
     # Outputs (The Aggregated Report)
-    trend_report: SubAgentOutput
-    oscillator_report: SubAgentOutput
-    volatility_report: SubAgentOutput
-    volume_report: SubAgentOutput
-    sr_report: SubAgentOutput
+    trend_report: TrendAgentOutput
+    oscillator_report: OscillatorAgentOutput
+    volatility_report: VolatilityAgentOutput
+    volume_report: VolumeAgentOutput
+    sr_report: SupportResistanceAgentOutput
+    technical_consensus_report: TechnicalConsensus

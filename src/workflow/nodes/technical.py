@@ -10,6 +10,7 @@ from src.core.schema import (
     VolatilityAgentOutput,
     VolumeAgentOutput,
     SupportResistanceAgentOutput,
+    TechnicalConsensus,
 )
 from src.core.prompt import (
     TREND_PROMPT,
@@ -17,6 +18,7 @@ from src.core.prompt import (
     VOLUME_PROMPT,
     SR_PROMPT,
     OSCILLATOR_PROMPT,
+    TECHNICAL_AGENT,
 )
 from src.utils.helper import create_prompt, _invoke_structured_with_recovery
 
@@ -148,4 +150,46 @@ async def sr_agent_node(state: TechnicalState):
     response = {"sr_report": result}
     if meta:
         response["sr_meta"] = meta
+    return response
+
+
+async def technical_consensus_node(state: TechnicalState):
+    user_content = """
+        Here is the latest technical telemetry:
+
+        --- TREND AGENT ---
+        {trend_data}
+
+        --- OSCILLATOR AGENT ---
+        {oscillator_data}
+
+        --- VOLATILITY AGENT ---
+        {volatility_data}
+
+        --- VOLUME AGENT ---
+        {volume_data}
+
+        --- SR AGENT (Levels) ---
+        {sr_data}
+
+        Based on this, generate the Technical Consensus.
+        """
+    consensus_prompt = create_prompt(TECHNICAL_AGENT, user_content)
+    to_prompt_vars = RunnableLambda(lambda x: {
+        "trend_data": json.dumps(x.get("trend_report", {}), ensure_ascii=False, default=str),
+        "oscillator_data": json.dumps(x.get("oscillator_report", {}), ensure_ascii=False, default=str),
+        "volatility_data": json.dumps(x.get("volatility_report", {}), ensure_ascii=False, default=str),
+        "volume_data": json.dumps(x.get("volume_report", {}), ensure_ascii=False, default=str),
+        "sr_data": json.dumps(x.get("sr_report", {}), ensure_ascii=False, default=str),
+    })
+
+    prompt_value = (to_prompt_vars | consensus_prompt).invoke(state)
+    result, meta = await _invoke_structured_with_recovery(
+        llm,
+        prompt_value,
+        TechnicalConsensus,
+    )
+    response = {"technical_consensus_report": result}
+    if meta:
+        response["technical_consensus_meta"] = meta
     return response

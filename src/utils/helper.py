@@ -18,6 +18,7 @@ async def _invoke_structured_with_recovery(
     llm: Any,
     prompt_value: Any,
     schema_model: Type[BaseModel],
+    fallback_prompt: Optional[str] = None,
 ) -> Tuple[BaseModel, Optional[Dict[str, str]]]:
     try:
         out = await llm.with_structured_output(schema_model).ainvoke(prompt_value)
@@ -38,10 +39,12 @@ async def _invoke_structured_with_recovery(
             out = schema_model.model_validate_json(raw)
             return out, {"recovered": "fix_prompt"}
         except ValidationError:
-            fallback_prompt = """
-            Return ONLY JSON with keys: sr_summary, primary_causes, risk_flags, key_metrics.
-            No extra text. Use null/[]/{} as needed.
-            """
+            if fallback_prompt is None:
+                fallback_prompt = f"""
+Return ONLY valid JSON matching this schema:
+{schema_model.model_json_schema()}
+No extra text. Use null when unknown.
+"""
             raw2_msg = await llm.ainvoke(fallback_prompt + "\n\n" + prompt_text)
             raw2 = raw2_msg.content if hasattr(raw2_msg, "content") else str(raw2_msg)
             out = schema_model.model_validate_json(raw2)

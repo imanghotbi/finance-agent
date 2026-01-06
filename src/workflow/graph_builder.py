@@ -7,6 +7,7 @@ from src.workflow.nodes.technical import (
     volatility_agent_node,
     volume_agent_node,
     sr_agent_node,
+    technical_consensus_node,
 )
 
 
@@ -22,6 +23,7 @@ def build_technical_graph():
     parallel_workflow.add_node("volatility_agent", volatility_agent_node)
     parallel_workflow.add_node("volume_agent", volume_agent_node)
     parallel_workflow.add_node("sr_agent", sr_agent_node)
+    parallel_workflow.add_node("technical_consensus", technical_consensus_node)
 
     # We need a dummy start node to dispatch
     parallel_workflow.add_node("dispatch", lambda x: x)
@@ -39,11 +41,12 @@ def build_technical_graph():
         },
     )
 
-    parallel_workflow.add_edge("trend_agent", END)
-    parallel_workflow.add_edge("oscillator_agent", END)
-    parallel_workflow.add_edge("volatility_agent", END)
-    parallel_workflow.add_edge("volume_agent", END)
-    parallel_workflow.add_edge("sr_agent", END)
+    parallel_workflow.add_edge("trend_agent", "technical_consensus")
+    parallel_workflow.add_edge("oscillator_agent", "technical_consensus")
+    parallel_workflow.add_edge("volatility_agent", "technical_consensus")
+    parallel_workflow.add_edge("volume_agent", "technical_consensus")
+    parallel_workflow.add_edge("sr_agent", "technical_consensus")
+    parallel_workflow.add_edge("technical_consensus", END)
 
     return parallel_workflow.compile()
 

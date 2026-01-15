@@ -4,7 +4,7 @@ from langchain_core.runnables import RunnableLambda
 
 from src.utils.llm_factory import LLMFactory
 from src.workflow.state import TechnicalState
-from src.core.schema import (
+from src.schema.technical import (
     TrendAgentOutput,
     OscillatorAgentOutput,
     VolatilityAgentOutput,

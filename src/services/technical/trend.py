@@ -1,7 +1,7 @@
 import talib 
 import numpy as np
 
-from src.services.analysis.base import BaseTechnicalAnalyzer
+from src.services.technical.base import BaseTechnicalAnalyzer
 
 class TrendAnalyzer(BaseTechnicalAnalyzer):
     def __init__(self, data_source, symbol="UNKNOWN"):

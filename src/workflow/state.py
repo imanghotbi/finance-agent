@@ -1,6 +1,6 @@
-from typing import Any, Dict, TypedDict, Union
+from typing import Any, Dict, TypedDict
 
-from src.core.schema import (
+from src.schema.technical import (
     TrendAgentOutput,
     OscillatorAgentOutput,
     VolatilityAgentOutput,
@@ -8,17 +8,6 @@ from src.core.schema import (
     SupportResistanceAgentOutput,
     TechnicalConsensus,
 )
-
-
-
-SubAgentOutput = Union[
-    TrendAgentOutput,
-    OscillatorAgentOutput,
-    VolatilityAgentOutput,
-    VolumeAgentOutput,
-    SupportResistanceAgentOutput,
-]
-
 
 class TechnicalState(TypedDict):
     symbol: str

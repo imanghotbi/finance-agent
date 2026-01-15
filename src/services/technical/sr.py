@@ -1,5 +1,5 @@
 import pandas as pd
-from src.services.analysis.base import BaseTechnicalAnalyzer
+from src.services.technical.base import BaseTechnicalAnalyzer
 
 class SupportResistanceAnalyzer(BaseTechnicalAnalyzer):
     """

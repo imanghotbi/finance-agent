@@ -1,4 +1,4 @@
-from src.services.analysis.base import BaseTechnicalAnalyzer
+from src.services.technical.base import BaseTechnicalAnalyzer
 import talib
 import pandas as pd
 

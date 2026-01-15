@@ -154,6 +154,14 @@ async def sr_agent_node(state: TechnicalState):
 
 
 async def technical_consensus_node(state: TechnicalState):
+    # GATEKEEPER CHECK: Ensure all sub-agent reports are present
+    required_keys = ["trend_report", "oscillator_report", "volatility_report", "volume_report", "sr_report"]
+    missing = [key for key in required_keys if not state.get(key)]
+    
+    if missing:
+        print(f"Technical Consensus: Waiting for inputs: {missing}")
+        return {}
+        
     user_content = """
         Here is the latest technical telemetry:
 

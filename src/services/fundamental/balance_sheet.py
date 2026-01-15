@@ -64,7 +64,8 @@ class BalanceSheetAgent(BaseFundamentalAgent):
             payout_alloc['dividend_payout_ratio_pct'] = None
 
         return {
-            "agent_name": "Balance Sheet & Capital Allocation Sub-Agent",
+            "symbol_name": self.symbol_name,
+            "short_name": self.name,
             "raw_metrics": raw_metrics,
             "liquidity_and_solvency_ratios": l_s_ratios,
             "payout_and_capital_allocation": payout_alloc

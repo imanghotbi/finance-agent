@@ -46,7 +46,6 @@ class AgentState(TypedDict):
     symbol: str
     
     # Inputs
-    visual_data: Dict[str, Any]
     technical_data: Dict[str, Any]
     fundamental_data: Dict[str, Any]
     

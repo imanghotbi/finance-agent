@@ -16,6 +16,8 @@ from src.workflow.nodes.fundamental import (
     fundamental_consensus_node,
 )
 from src.workflow.nodes.reporter import reporter_node
+from src.workflow.nodes.introduction import introduction_node
+from src.workflow.nodes.data_preparation import run_orchestrator as data_preparation_node
 
 
 # ==========================================
@@ -52,13 +54,6 @@ def build_technical_graph():
     )
 
     # Fan-in to Consensus
-    # Note: In LangGraph, if multiple nodes point to one, it triggers on each.
-    # Ideally, we want to wait. But for now, we assume the consensus node
-    # can handle partial updates or we rely on the final state.
-    # However, to be robust, we'll let them write to state, and we can force synchronization
-    # if we used a specific 'join' pattern, but simple edges work if state is additive.
-    # Realistically, for true barrier synchronization in LangGraph without sub-supersteps,
-    # we usually just point them to the next node.
     workflow.add_edge("trend_agent", "technical_consensus")
     workflow.add_edge("oscillator_agent", "technical_consensus")
     workflow.add_edge("volatility_agent", "technical_consensus")
@@ -117,17 +112,26 @@ def build_graph():
     # We use AgentState which has both Tech and Fund keys
     workflow = StateGraph(AgentState)
     
-    # Add Sub-Graphs as Nodes
-    # NOTE: When adding a compiled graph as a node, it receives the state and returns the state.
+    # Add Nodes
+    workflow.add_node("introduction_node", introduction_node)
+    workflow.add_node("data_preparation", data_preparation_node)
+    
+    # Sub-Graphs
     workflow.add_node("technical_graph", build_technical_graph())
     workflow.add_node("fundamental_graph", build_fundamental_graph())
     
     # Reporter
     workflow.add_node("reporter_agent", reporter_node)
 
-    # Entry: Parallel Execution of Tech and Fund
+    # Entry Point
+    workflow.set_entry_point("introduction_node")
+    
+    # Flow
+    workflow.add_edge("introduction_node", "data_preparation")
+    workflow.add_edge("data_preparation", "dispatch_master")
+    
+    # Dispatcher for Parallel Execution
     workflow.add_node("dispatch_master", lambda x: x)
-    workflow.set_entry_point("dispatch_master")
     
     workflow.add_conditional_edges(
         "dispatch_master",
@@ -137,6 +141,9 @@ def build_graph():
             "fundamental_graph": "fundamental_graph",
         },
     )
+
+    # Join at Reporter
+    workflow.add_edge("technical_graph", "reporter_agent")
     workflow.add_edge("fundamental_graph", "reporter_agent")
     
     workflow.add_edge("reporter_agent", END)

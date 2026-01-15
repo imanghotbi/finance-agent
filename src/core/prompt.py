@@ -554,4 +554,6 @@ REPORTER_AGENT = '''
         *   **Primary Scenario:** [What we expect to happen]
         *   **Invalidation (Stop Loss):** [Where the thesis breaks]
         *   **Target:** [Upside potential if available]
+
+        anwser in persian
         '''

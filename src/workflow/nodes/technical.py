@@ -27,7 +27,7 @@ llm = LLMFactory.get_model()
 
 async def trend_agent_node(state: TechnicalState):
     data = state["technical_data"].get("trend", {})
-    visual = state.get("visual_data", {})
+    visual = state["technical_data"].get("visuals", {})
     ##TODO check this for input data
     input_data = {
         **data ,
@@ -53,8 +53,7 @@ async def trend_agent_node(state: TechnicalState):
 async def oscillator_agent_node(state: TechnicalState):
     # Mapping 'oscillators' from input key usually found in 'technical_analysis'
     data = state["technical_data"].get("oscillators", {})
-    visual = state.get("visual_data", {})
-    ##TODO check this for input data
+    visual = state["technical_data"].get("visuals", {})
     input_data = {
         **data ,
         **visual
@@ -78,8 +77,7 @@ async def oscillator_agent_node(state: TechnicalState):
 
 async def volatility_agent_node(state: TechnicalState):
     data = state["technical_data"].get("volatility", {})
-    visual = state.get("visual_data", {})
-    ##TODO check this for input data
+    visual = state["technical_data"].get("visuals", {})
     input_data = {
         **data ,
         **visual
@@ -103,8 +101,7 @@ async def volatility_agent_node(state: TechnicalState):
 
 async def volume_agent_node(state: TechnicalState):
     data = state["technical_data"].get("volume", {})
-    visual = state.get("visual_data", {})
-    ##TODO check this for input data
+    visual = state["technical_data"].get("visuals", {})
     input_data = {
         **data ,
         **visual
@@ -128,8 +125,7 @@ async def volume_agent_node(state: TechnicalState):
 
 async def sr_agent_node(state: TechnicalState):
     data = state["technical_data"].get("support_resistance", {})
-    visual = state.get("visual_data", {})
-    ##TODO check this for input data
+    visual = state["technical_data"].get("visuals", {})
     input_data = {
         **data ,
         **visual
@@ -154,7 +150,7 @@ async def sr_agent_node(state: TechnicalState):
 
 
 async def technical_consensus_node(state: TechnicalState):
-    # GATEKEEPER CHECK: Ensure all sub-agent reports are present
+
     required_keys = ["trend_report", "oscillator_report", "volatility_report", "volume_report", "sr_report"]
     missing = [key for key in required_keys if not state.get(key)]
     

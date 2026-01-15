@@ -3,8 +3,10 @@ from datetime import datetime
 from typing import Optional
 
 from src.core.mongo_manger import MongoManager
+from src.workflow.state import AgentState
 from src.services.prepare_data import StockAnalysisPipeline
 from src.core.logger import logger
+from src.workflow.nodes.mock_data import mock_data
 
 async def should_run_pipeline(symbol: str) -> bool:
     """
@@ -60,28 +62,43 @@ async def should_run_pipeline(symbol: str) -> bool:
         # strict resource cleanup
         mongo.close()
 
-async def run_orchestrator(symbol: str):
+async def run_orchestrator(state: AgentState):
     """
     Orchestrates the check and execution flow.
     """
-    logger.info("--- 🏁 Starting Orchestrator ---")
+    symbol = state["symbol"]
+    logger.info(f"--- 🏁 Starting Mock Orchestrator for {symbol} ---")
     
     # 1. Check Condition
-    run_required = await should_run_pipeline(symbol)
-
+    # run_required = await should_run_pipeline(symbol) ##TODO uncomment this after mongo is okay
+    run_required = False
     # 2. Execute if needed
     if run_required:
         try:
             logger.info(f"🚀 Initializing Pipeline for: {symbol}")
             pipeline = StockAnalysisPipeline(symbol)
-            await pipeline.execute()
+            await pipeline.execute() ##TODO store and return data
             logger.info(f"✨ Pipeline execution finished for: {symbol}")
         except Exception as e:
             logger.critical(f"🔥 Pipeline execution failed: {e}", exc_info=True)
     else:
-        logger.info(f"zzz No action needed for {symbol}.")
+        ##TODO read data from mongo if run_required equals false
+        # logger.info(f"zzz No action needed for {symbol}.") ##TODO this is temperory
+        symbol_data = await mock_data()
 
     logger.info("--- 🏁 Orchestrator Finished ---")
+    return {
+        "technical_data" : symbol_data['technical_analysis'],
+        "fundamental_data" : {
+            "symbol_name": symbol_data["symbol"],
+            "name" : symbol_data["short_name"],
+            "market_data" : symbol_data["market_data"],
+            "fundamental_analysis" : symbol_data["fundamental_analysis"]
+        }
+    }
+
+
+
 
 if __name__ == "__main__":
     # You can change this target symbol or load it from args

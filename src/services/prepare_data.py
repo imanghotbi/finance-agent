@@ -14,12 +14,12 @@ from src.services.providers.twitter_rapid import TwitterRapidClient
 from src.services.providers.tavily_search import TavilyClient
 
 # Analyzers
-from src.services.analysis.technical.trend import TrendAnalyzer
-from src.services.analysis.technical.oscillator import OscillatorAnalyzer
-from src.services.analysis.technical.volume import VolumeAnalyzer
-from src.services.analysis.technical.volatility import VolatilityAnalyzer
-from src.services.analysis.technical.sr import SupportResistanceAnalyzer
-from src.services.analysis.technical.spark_trend import SparklineReporter
+from src.services.technical.trend import TrendAnalyzer
+from src.services.technical.oscillator import OscillatorAnalyzer
+from src.services.technical.volume import VolumeAnalyzer
+from src.services.technical.volatility import VolatilityAnalyzer
+from src.services.technical.sr import SupportResistanceAnalyzer
+from src.services.technical.spark_trend import SparklineReporter
 
 class StockAnalysisPipeline:
     def __init__(self, symbol_name: str):

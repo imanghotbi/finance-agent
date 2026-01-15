@@ -3,6 +3,8 @@ class BaseFundamentalAgent:
         self.data = fundamental_data
         
         # Common Access Points
+        self.symbol_name = self.data.get('symbol_name','UNKNOWN')
+        self.name = self.data.get('name','UNKNOWN')
         self.fa = self.data.get('fundamental_analysis', {})
         self.bs = self.fa.get('balance_sheet', {})
         self.pl = self.fa.get('profit_loss', {})

@@ -132,7 +132,8 @@ class EarningsQualityAgent(BaseFundamentalAgent):
             flags['flag_ocf_below_net_income'] = None
 
         return {
-            "agent_name": "Earnings & Cash Quality Sub-Agent",
+            "symbol_name": self.symbol_name,
+            "short_name": self.name,
             "raw_metrics": raw_metrics,
             "delta_metrics": delta_metrics,
             "quality_ratios": quality_ratios,

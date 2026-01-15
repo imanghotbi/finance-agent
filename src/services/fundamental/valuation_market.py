@@ -85,7 +85,8 @@ class ValuationAgent(BaseFundamentalAgent):
             mult['ev_to_sales'] = enterprise_value / revenue_ttm
 
         return {
-            "agent_name": "Valuation & Market Microstructure Sub-Agent",
+            "symbol_name": self.symbol_name,
+            "short_name": self.name,
             "market_raw": market_raw,
             "enterprise_value_block": ev_block,
             "multiples_and_yields": mult,

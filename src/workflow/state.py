@@ -15,6 +15,12 @@ from src.schema.fundamental import (
     ValuationOutput,
     FundamentalAnalysisOutput,
 )
+from src.schema.social_news import (
+    SocialSentimentOutput,
+    RetailPulseAnalysis,
+    FundamentalNewsAnalysis,
+    NewsSocialFusionOutput
+)
 
 def merge_dicts(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
     return {**a, **b}
@@ -41,6 +47,16 @@ class FundamentalState(TypedDict):
     valuation_report: ValuationOutput
     fundamental_consensus_report: FundamentalAnalysisOutput
 
+class NewsSocialState(TypedDict):
+    symbol: str
+    news_social_data: Dict[str, Any]
+    
+    # Outputs
+    twitter_report: SocialSentimentOutput
+    sahamyab_report: RetailPulseAnalysis
+    news_report: FundamentalNewsAnalysis
+    social_news_consensus_report: NewsSocialFusionOutput
+
 class AgentState(TypedDict):
     
     symbol: str
@@ -48,6 +64,7 @@ class AgentState(TypedDict):
     # Inputs
     technical_data: Dict[str, Any]
     fundamental_data: Dict[str, Any]
+    news_social_data: Dict[str, Any]
     
     # Technical Outputs
     trend_report: TrendAgentOutput
@@ -62,6 +79,12 @@ class AgentState(TypedDict):
     earnings_quality_report: EarningsQualityOutput
     valuation_report: ValuationOutput
     fundamental_consensus_report: FundamentalAnalysisOutput
+    
+    # News & Social Outputs
+    twitter_report: SocialSentimentOutput
+    sahamyab_report: RetailPulseAnalysis
+    news_report: FundamentalNewsAnalysis
+    social_news_consensus_report: NewsSocialFusionOutput
     
     # Final Output
     final_report: str

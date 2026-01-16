@@ -15,11 +15,15 @@ from src.core.prompt import (
     FUNDAMENTAL_AGENT,
 )
 from src.utils.helper import create_prompt, _invoke_structured_with_recovery
+from src.services.fundamental.balance_sheet import BalanceSheetAgent
+from src.services.fundamental.earnings_cash import EarningsQualityAgent
+from src.services.fundamental.valuation_market import ValuationAgent
 
 llm = LLMFactory.get_model()
 
 async def balance_sheet_node(state: FundamentalState):
-    data = state["fundamental_data"].get("balance_sheet", {})
+    agent = BalanceSheetAgent(state["fundamental_data"])
+    data = agent.process()
     
     user_content = (
     "INPUT JSON:\n{input_json}\n\n"
@@ -41,7 +45,8 @@ async def balance_sheet_node(state: FundamentalState):
     return response
 
 async def earnings_quality_node(state: FundamentalState):
-    data = state["fundamental_data"].get("earnings", {})
+    agent = EarningsQualityAgent(state["fundamental_data"])
+    data = agent.process()
     
     user_content = (
     "INPUT JSON:\n{input_json}\n\n"
@@ -63,7 +68,8 @@ async def earnings_quality_node(state: FundamentalState):
     return response
 
 async def valuation_node(state: FundamentalState):
-    data = state["fundamental_data"].get("valuation", {})
+    agent = ValuationAgent(state["fundamental_data"])
+    data = agent.process()
     
     user_content = (
     "INPUT JSON:\n{input_json}\n\n"

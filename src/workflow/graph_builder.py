@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, END
 
-from src.workflow.state import AgentState, TechnicalState, FundamentalState
+from src.workflow.state import AgentState, TechnicalState, FundamentalState, NewsSocialState
 from src.workflow.nodes.technical import (
     trend_agent_node,
     oscillator_agent_node,
@@ -14,6 +14,12 @@ from src.workflow.nodes.fundamental import (
     earnings_quality_node,
     valuation_node,
     fundamental_consensus_node,
+)
+from src.workflow.nodes.social_news import (
+    twitter_agent_node,
+    sahamyab_agent_node,
+    news_agent_node,
+    social_news_consensus_node,
 )
 from src.workflow.nodes.reporter import reporter_node
 from src.workflow.nodes.introduction import introduction_node
@@ -103,10 +109,48 @@ def build_fundamental_graph():
     return workflow.compile()
 
 # ==========================================
-# 3. Master Graph
+# 3. Social & News Sub-Graph
+# ==========================================
+def _dispatch_social_news(_):
+    return ["twitter_agent", "sahamyab_agent", "news_agent"]
+
+def build_social_news_graph():
+    workflow = StateGraph(NewsSocialState)
+    
+    # Nodes
+    workflow.add_node("twitter_agent", twitter_agent_node)
+    workflow.add_node("sahamyab_agent", sahamyab_agent_node)
+    workflow.add_node("news_agent", news_agent_node)
+    workflow.add_node("social_news_consensus", social_news_consensus_node)
+
+    # Dispatcher
+    workflow.add_node("dispatch_social", lambda x: x)
+    workflow.set_entry_point("dispatch_social")
+    
+    workflow.add_conditional_edges(
+        "dispatch_social",
+        _dispatch_social_news,
+        {
+            "twitter_agent": "twitter_agent",
+            "sahamyab_agent": "sahamyab_agent",
+            "news_agent": "news_agent",
+        },
+    )
+
+    # Fan-in
+    workflow.add_edge("twitter_agent", "social_news_consensus")
+    workflow.add_edge("sahamyab_agent", "social_news_consensus")
+    workflow.add_edge("news_agent", "social_news_consensus")
+    
+    workflow.add_edge("social_news_consensus", END)
+
+    return workflow.compile()
+
+# ==========================================
+# 4. Master Graph
 # ==========================================
 def _dispatch_master(_):
-    return ["technical_graph", "fundamental_graph"]
+    return ["technical_graph", "fundamental_graph", "social_news_graph"]
 
 def build_graph():
     # We use AgentState which has both Tech and Fund keys
@@ -119,6 +163,7 @@ def build_graph():
     # Sub-Graphs
     workflow.add_node("technical_graph", build_technical_graph())
     workflow.add_node("fundamental_graph", build_fundamental_graph())
+    workflow.add_node("social_news_graph", build_social_news_graph())
     
     # Reporter
     workflow.add_node("reporter_agent", reporter_node)
@@ -139,12 +184,14 @@ def build_graph():
         {
             "technical_graph": "technical_graph",
             "fundamental_graph": "fundamental_graph",
+            "social_news_graph": "social_news_graph",
         },
     )
 
     # Join at Reporter
     workflow.add_edge("technical_graph", "reporter_agent")
     workflow.add_edge("fundamental_graph", "reporter_agent")
+    workflow.add_edge("social_news_graph", "reporter_agent")
     
     workflow.add_edge("reporter_agent", END)
 

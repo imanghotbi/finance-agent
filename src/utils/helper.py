@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional, Tuple, Type
-
+from datetime import datetime
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, ValidationError
 
@@ -49,3 +49,12 @@ No extra text. Use null when unknown.
             raw2 = raw2_msg.content if hasattr(raw2_msg, "content") else str(raw2_msg)
             out = schema_model.model_validate_json(raw2)
             return out, {"recovered": "json_only_fallback"}
+
+
+def parse_iso_date(date_str):
+    try:
+        if not date_str:
+            return None
+        return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    except ValueError:
+        return None

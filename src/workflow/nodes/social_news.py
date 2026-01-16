@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta, timezone
 from langchain_core.runnables import RunnableLambda
 from src.utils.llm_factory import LLMFactory
 from src.workflow.state import NewsSocialState
@@ -14,7 +15,7 @@ from src.core.prompt import (
     NEWS_PROMPT,
     SOCIAL_NEWS_AGENT_PROMPT,
 )
-from src.utils.helper import create_prompt, _invoke_structured_with_recovery
+from src.utils.helper import create_prompt, _invoke_structured_with_recovery , parse_iso_date
 
 llm = LLMFactory.get_model()
 
@@ -22,11 +23,26 @@ async def twitter_agent_node(state: NewsSocialState):
     data = state["news_social_data"].get("rapid_tweet", [])
     symbol = state["news_social_data"].get("symbol", "")
     short_name = state["news_social_data"].get("short_name", "")
+    current_date = state["news_social_data"].get("analysis_date", str(datetime.now()))
     
+    sorted_tweets = sorted(data, key=lambda x: int(x.get("likes", 0)), reverse=True)
+    top_tweets = sorted_tweets[:10]
+    
+    cleaned_tweets = []
+    for t in top_tweets:
+        cleaned_tweets.append({
+            "text": t.get("text"),
+            "likes": t.get("likes"),
+            "retweets": t.get("retweets"),
+            "views": t.get("views"),
+            "created_at": t.get("created_at")
+        })
+
     input_data = {
         "symbol": symbol,
         "short_name": short_name,
-        "tweets": data
+        "current_date": current_date,
+        "tweets": cleaned_tweets
     }
     
     user_content = (
@@ -49,11 +65,30 @@ async def sahamyab_agent_node(state: NewsSocialState):
     data = state["news_social_data"].get("latest_sahamyab_tweet", [])
     symbol = state["news_social_data"].get("symbol", "")
     short_name = state["news_social_data"].get("short_name", "")
+    current_date = state["news_social_data"].get("analysis_date", str(datetime.now()))
+    
+    # Sort by sendTime descending
+    sorted_data = sorted(
+        data, 
+        key=lambda x: parse_iso_date(x.get("sendTime")) or datetime(1970, 1, 1, tzinfo=timezone.utc), 
+        reverse=True
+    )
+    top_comments = sorted_data[:10]
+    
+    cleaned_comments = []
+    for c in top_comments:
+        cleaned_comments.append({
+            "content": c.get("content"),
+            "date": c.get("sendTime"),
+            "likeCount": c.get("likeCount"),
+            "retwitCount": c.get("retwitCount")
+        })
     
     input_data = {
         "symbol": symbol,
         "short_name": short_name,
-        "comments": data
+        "current_date": current_date,
+        "comments": cleaned_comments
     }
     
     user_content = (
@@ -76,11 +111,54 @@ async def news_agent_node(state: NewsSocialState):
     data = state["news_social_data"].get("news", [])
     symbol = state["news_social_data"].get("symbol", "")
     short_name = state["news_social_data"].get("short_name", "")
+    analysis_date_str = state["news_social_data"].get("analysis_date")
     
+    filtered_news = []
+    
+    if analysis_date_str:
+        try:
+            current_date_dt = parse_iso_date(analysis_date_str)
+            if current_date_dt:
+                threshold_date = current_date_dt - timedelta(days=30)
+                
+                # Filter last 30 days
+                valid_news = []
+                for n in data:
+                    news_date_str = n.get("date")
+                    news_dt = parse_iso_date(news_date_str)
+                    
+                    if news_dt and news_dt >= threshold_date:
+                        valid_news.append(n)
+                
+                # Sort by date descending
+                # (Assuming news_dt comparison works with offset-aware datetimes)
+                valid_news.sort(key=lambda x: parse_iso_date(x.get("date")), reverse=True)
+                
+                # Take top 10
+                filtered_news = valid_news[:10]
+            else:
+                # Fallback if parsing fails
+                filtered_news = data[:10]
+        except Exception as e:
+            print(f"Error filtering news dates: {e}")
+            filtered_news = data[:10]
+    else:
+        filtered_news = data[:10]
+
+    # Map fields
+    cleaned_news = []
+    for n in filtered_news:
+        cleaned_news.append({
+            "date": n.get("date"),
+            "body": n.get("body"),
+            "type": n.get("type")
+        })
+
     input_data = {
         "symbol": symbol,
         "short_name": short_name,
-        "news_articles": data
+        "current_date": analysis_date_str,
+        "news_articles": cleaned_news
     }
     
     user_content = (
@@ -111,10 +189,12 @@ async def social_news_consensus_node(state: NewsSocialState):
     tavily_answer = state["news_social_data"].get("search_tavily_answer", "")
     symbol = state["news_social_data"].get("symbol", "")
     short_name = state["news_social_data"].get("short_name", "")
+    current_date = state["news_social_data"].get("analysis_date", "")
 
     input_data = {
         "symbol": symbol,
         "short_name": short_name,
+        "current_date": current_date,
         "twitter_report": state.get("twitter_report"),
         "sahamyab_report": state.get("sahamyab_report"),
         "news_report": state.get("news_report"),

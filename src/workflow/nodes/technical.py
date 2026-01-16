@@ -10,6 +10,7 @@ from src.schema.technical import (
     VolatilityAgentOutput,
     VolumeAgentOutput,
     SupportResistanceAgentOutput,
+    SmartMoneyAnalysis,
     TechnicalConsensus,
 )
 from src.core.prompt import (
@@ -18,6 +19,7 @@ from src.core.prompt import (
     VOLUME_PROMPT,
     SR_PROMPT,
     OSCILLATOR_PROMPT,
+    SMART_MOENY_PROMPT,
     TECHNICAL_AGENT,
 )
 from src.utils.helper import create_prompt, _invoke_structured_with_recovery
@@ -148,10 +150,29 @@ async def sr_agent_node(state: TechnicalState):
         response["sr_meta"] = meta
     return response
 
+async def smart_money_agent_node(state: TechnicalState):
+    input_data = state["technical_data"].get("smart_money", {})
+    user_content = (
+    "INPUT JSON:\n{input_json}\n\n"
+    "Return JSON that matches this schema:\n{schema_json}\n"
+    )
+
+    smart_money_prompt = create_prompt(SMART_MOENY_PROMPT , user_content)
+    to_prompt_vars = RunnableLambda(lambda x: {
+    "input_json": json.dumps(x, ensure_ascii=False, default=str),
+    "schema_json": json.dumps(SmartMoneyAnalysis.model_json_schema(), ensure_ascii=False)
+        })
+    
+    prompt_value = (to_prompt_vars | smart_money_prompt).invoke({"input_data": input_data})
+    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, SmartMoneyAnalysis)
+    response = {"smart_money_report": result}
+    if meta:
+        response["smart_money_meta"] = meta
+    return response
 
 async def technical_consensus_node(state: TechnicalState):
 
-    required_keys = ["trend_report", "oscillator_report", "volatility_report", "volume_report", "sr_report"]
+    required_keys = ["trend_report", "oscillator_report", "volatility_report", "volume_report", "sr_report", "smart_money_report"]
     missing = [key for key in required_keys if not state.get(key)]
     
     if missing:
@@ -176,6 +197,9 @@ async def technical_consensus_node(state: TechnicalState):
         --- SR AGENT (Levels) ---
         {sr_data}
 
+        --- SMART MONEY AGENT (Levels) ---
+        {smart_money_data}
+
         Based on this, generate the Technical Consensus.
         """
     consensus_prompt = create_prompt(TECHNICAL_AGENT, user_content)
@@ -185,6 +209,7 @@ async def technical_consensus_node(state: TechnicalState):
         "volatility_data": json.dumps(x.get("volatility_report", {}), ensure_ascii=False, default=str),
         "volume_data": json.dumps(x.get("volume_report", {}), ensure_ascii=False, default=str),
         "sr_data": json.dumps(x.get("sr_report", {}), ensure_ascii=False, default=str),
+        "smart_money_data": json.dumps(x.get("smart_money_report", {}), ensure_ascii=False, default=str)
     })
 
     prompt_value = (to_prompt_vars | consensus_prompt).invoke(state)

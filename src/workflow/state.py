@@ -8,6 +8,7 @@ from src.schema.technical import (
     VolumeAgentOutput,
     SupportResistanceAgentOutput,
     TechnicalConsensus,
+    SmartMoneyAnalysis
 )
 from src.schema.fundamental import (
     BalanceSheetOutput,
@@ -36,6 +37,7 @@ class TechnicalState(TypedDict):
     volume_report: VolumeAgentOutput
     sr_report: SupportResistanceAgentOutput
     technical_consensus_report: TechnicalConsensus
+    smart_money_report:SmartMoneyAnalysis
 
 class FundamentalState(TypedDict):
     symbol: str

@@ -20,6 +20,7 @@ from src.services.technical.volume import VolumeAnalyzer
 from src.services.technical.volatility import VolatilityAnalyzer
 from src.services.technical.sr import SupportResistanceAnalyzer
 from src.services.technical.spark_trend import SparklineReporter
+from src.services.technical.smart_money import SmartMoneyAnalyzer
 
 class StockAnalysisPipeline:
     def __init__(self, symbol_name: str):
@@ -114,11 +115,12 @@ class StockAnalysisPipeline:
                     r_client.get_cash_flow(asset_id),
                     r_client.get_financial_ratios(asset_id),
                     r_client.get_news(asset_id),
+                    r_client.get_symbol_trade_detail_history(asset_id , count=7),
                     return_exceptions=True # Prevent one failure from crashing all
                 )
 
                 # Unpack and check for exceptions in results
-                keys = ['history', 'details', 'pivots', 'balance', 'profit_loss', 'cash_flow', 'ratios', 'news']
+                keys = ['history', 'details', 'pivots', 'balance', 'profit_loss', 'cash_flow', 'ratios', 'news' , 'real_legal_trade']
                 self.rahavard_data = {'info': symbol_info}
                 
                 for key, result in zip(keys, results):
@@ -225,6 +227,7 @@ class StockAnalysisPipeline:
                 raw_pivots_data=self.rahavard_data.get('pivots')
             )
             spark_agent = SparklineReporter()
+            smart_money = SmartMoneyAnalyzer(self.rahavard_data.get('real_legal_trade') , window_size=7)
 
             # Generate Reports
             technicals = {
@@ -236,7 +239,8 @@ class StockAnalysisPipeline:
                 "visuals": spark_agent.create_report(
                     self.df[['open', 'close', 'volume']].to_dict('records'), 
                     period=14
-                )
+                ),
+                "smart_money": smart_money.analyze()
             }
             return technicals, current_price
         except Exception as e:

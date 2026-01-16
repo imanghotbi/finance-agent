@@ -200,6 +200,16 @@ class SupportResistanceAgentOutput(_BaseOut):
     risk_flags: List[str] = Field(default_factory=list)
     key_metrics: SRKeyMetrics = Field(default_factory=SRKeyMetrics)
 
+# ----------------------------
+# smart money Agent
+# ----------------------------
+
+class SmartMoneyAnalysis(BaseModel):
+    signal: Literal["BULLISH", "BEARISH", "NEUTRAL", "CAUTION"] = Field(..., description="The overall trading signal based on money flow.")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score between 0 and 1.")
+    analysis_summary: str = Field(..., description="A concise explanation of the 'why', focusing on Buyer Power and Net Flow changes.")
+    smart_money_status: Literal["ENTERING", "EXITING", "ACCUMULATION", "DISTRIBUTION", "NO_ACTIVITY"] = Field(..., description="The specific behavior of the smart money (Whales).")
+    trend_7_days: Literal["Improving", "Deteriorating", "Stable", "Volatile"] = Field(..., description="The short-term trend direction of the money flow.")
 
 # ----------------------------
 # Aggregator Output Models
@@ -226,7 +236,10 @@ class TechnicalConsensus(BaseModel):
     
     executive_summary: str = Field(description="A concise 3-sentence summary for the Portfolio Manager.")
     technical_narrative: str = Field(description="Detailed synthesis of how the factors interact.")
-    
+
+    institutional_alignment: Literal["Aligned_With_Trend", "Fighting_Trend", "Passive"] = Field(..., description="Does Smart Money support the current price action?")
+    smart_money_divergence: bool = Field(..., description="True if Price/Trend is moving opposite to Smart Money Flow (e.g., Price Up + Whales Selling).")
+
     confluence_factors: List[str] = Field(description="List of factors where agents agree.")
     conflicts: List[ConflictAlert] = Field(description="Disagreements between agents.")
     

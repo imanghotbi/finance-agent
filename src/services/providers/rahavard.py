@@ -187,6 +187,23 @@ class RahavardClient:
             logger.error(f"Error fetching trade details for {asset_id}: {e}")
             return []
 
+    async def get_symbol_trade_detail_history(self, asset_id: str, skip: Optional[int] = None, count: Optional[int] = None) -> Dict:
+        """
+        Fetch detailed trade history (Person/Company buy/sell details).
+        """
+        params = {}
+        if skip is not None:
+            params['_skip'] = skip
+        if count is not None:
+            params['_count'] = count
+
+        try:
+            resp = await self._request("GET", f"asset/{asset_id}/tradedetails", params=params)
+            return resp.get('data', [])
+        except Exception as e:
+            logger.error(f"Error fetching symbol trade detail history for {asset_id}: {e}")
+            return {}
+
     async def _fetch_fundamental_report(self, asset_id: str, endpoint: str) -> Optional[Dict]:
         """
         Refactored fundamental fetcher (kept here for completeness of context)

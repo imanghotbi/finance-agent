@@ -11,3 +11,5 @@ langgraph
 langchain-openai
 langchain-nvidia-ai-endpoints
 pydantic
+beautifulsoup4
+jdatetime

@@ -15,6 +15,7 @@ from src.schema.fundamental import (
     EarningsQualityOutput,
     ValuationOutput,
     FundamentalAnalysisOutput,
+    CodalAnalysisOutput
 )
 from src.schema.social_news import (
     SocialSentimentOutput,
@@ -47,6 +48,7 @@ class FundamentalState(TypedDict):
     balance_sheet_report: BalanceSheetOutput
     earnings_quality_report: EarningsQualityOutput
     valuation_report: ValuationOutput
+    codal_report: CodalAnalysisOutput
     fundamental_consensus_report: FundamentalAnalysisOutput
 
 class NewsSocialState(TypedDict):
@@ -80,6 +82,7 @@ class AgentState(TypedDict):
     balance_sheet_report: BalanceSheetOutput
     earnings_quality_report: EarningsQualityOutput
     valuation_report: ValuationOutput
+    codal_report: CodalAnalysisOutput
     fundamental_consensus_report: FundamentalAnalysisOutput
     
     # News & Social Outputs

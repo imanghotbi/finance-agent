@@ -85,6 +85,17 @@ class ValuationOutput(BaseModel):
     risk_flags: List[str] = Field(..., description="Specific valuation risks (e.g., Value Trap)", min_items=0)
 
 # ----------------------------
+# Codal Agent
+# ----------------------------
+
+class CodalReportSelection(BaseModel):
+    selected_ids: List[str] = Field(..., description="List of IDs of the most relevant financial reports")
+
+class CodalAnalysisOutput(BaseModel):
+    key_findings: List[str] = Field(..., description="List of key points extracted from the reports")
+    summary: str = Field(..., description="Concise summary of the analysis")
+
+# ----------------------------
 # Fundamental Agent
 # ----------------------------   
 

@@ -8,12 +8,14 @@ from src.workflow.nodes.technical import (
     volume_agent_node,
     sr_agent_node,
     technical_consensus_node,
+    smart_money_agent_node
 )
 from src.workflow.nodes.fundamental import (
     balance_sheet_node,
     earnings_quality_node,
     valuation_node,
     fundamental_consensus_node,
+    codal_agent_node,
 )
 from src.workflow.nodes.social_news import (
     twitter_agent_node,
@@ -30,7 +32,7 @@ from src.workflow.nodes.data_preparation import run_orchestrator as data_prepara
 # 1. Technical Sub-Graph
 # ==========================================
 def _dispatch_technical(_):
-    return ["trend_agent", "oscillator_agent", "volatility_agent", "volume_agent", "sr_agent"]
+    return ["trend_agent", "oscillator_agent", "volatility_agent", "volume_agent", "sr_agent" , "smart_money_agent"]
 
 def build_technical_graph():
     workflow = StateGraph(TechnicalState)
@@ -41,6 +43,7 @@ def build_technical_graph():
     workflow.add_node("volatility_agent", volatility_agent_node)
     workflow.add_node("volume_agent", volume_agent_node)
     workflow.add_node("sr_agent", sr_agent_node)
+    workflow.add_node("smart_money_agent", smart_money_agent_node)
     workflow.add_node("technical_consensus", technical_consensus_node)
 
     # Dispatcher (Fan-out)
@@ -56,6 +59,7 @@ def build_technical_graph():
             "volatility_agent": "volatility_agent",
             "volume_agent": "volume_agent",
             "sr_agent": "sr_agent",
+            "smart_money_agent" : "smart_money_agent"
         },
     )
 
@@ -65,6 +69,7 @@ def build_technical_graph():
     workflow.add_edge("volatility_agent", "technical_consensus")
     workflow.add_edge("volume_agent", "technical_consensus")
     workflow.add_edge("sr_agent", "technical_consensus")
+    workflow.add_edge("smart_money_agent", "technical_consensus")
     
     workflow.add_edge("technical_consensus", END)
 
@@ -74,7 +79,7 @@ def build_technical_graph():
 # 2. Fundamental Sub-Graph
 # ==========================================
 def _dispatch_fundamental(_):
-    return ["balance_sheet_agent", "earnings_quality_agent", "valuation_agent"]
+    return ["balance_sheet_agent", "earnings_quality_agent", "valuation_agent", "codal_agent"]
 
 def build_fundamental_graph():
     workflow = StateGraph(FundamentalState)
@@ -83,6 +88,7 @@ def build_fundamental_graph():
     workflow.add_node("balance_sheet_agent", balance_sheet_node)
     workflow.add_node("earnings_quality_agent", earnings_quality_node)
     workflow.add_node("valuation_agent", valuation_node)
+    workflow.add_node("codal_agent", codal_agent_node)
     workflow.add_node("fundamental_consensus", fundamental_consensus_node)
 
     # Dispatcher
@@ -96,6 +102,7 @@ def build_fundamental_graph():
             "balance_sheet_agent": "balance_sheet_agent",
             "earnings_quality_agent": "earnings_quality_agent",
             "valuation_agent": "valuation_agent",
+            "codal_agent": "codal_agent",
         },
     )
 
@@ -103,6 +110,7 @@ def build_fundamental_graph():
     workflow.add_edge("balance_sheet_agent", "fundamental_consensus")
     workflow.add_edge("earnings_quality_agent", "fundamental_consensus")
     workflow.add_edge("valuation_agent", "fundamental_consensus")
+    workflow.add_edge("codal_agent", "fundamental_consensus")
     
     workflow.add_edge("fundamental_consensus", END)
 

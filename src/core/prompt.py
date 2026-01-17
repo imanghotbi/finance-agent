@@ -527,6 +527,24 @@ You will receive the JSON outputs of:
         2.  **Investment Bias:** Strictly derived from the intersection of the three pillars.
         3.  **Executive Summary:** Write for a Portfolio Manager. Be direct. (e.g., *"Despite attractive valuation metrics, the deteriorating business quality and weak financial resilience suggest this is a Value Trap rather than a turnaround opportunity."*)'''
 
+CODAL_LIST_PROMPT = """
+Given the following list of financial reports for the {symbol} symbol in Tehran stocks:
+        
+    {data}
+        
+Identify the reports that are most useful for analyzing the company and making trading recommendations. 
+Return the IDs of the useful reports as a Python list. you have to pick at least one report.
+"""
+
+CODAL_CONTENT_PROMPT = """
+Analyze the following financial reports for the {symbol} symbol in Tehran stocks:
+
+    {data}
+
+Extract key findings from these reports that will help in making trading recommendations for this symbol. 
+Provide a concise summary of the most important points.
+"""
+
 # ========================
 # News & Social Network Agent
 # ========================
@@ -663,7 +681,8 @@ Output Requirements:
 
 # ========================
 # Aggregator Agent
-# ========================       
+# ========================    
+   
 REPORTER_AGENT = '''
         **Role:**
         You are the **Lead Portfolio Manager & Editor-in-Chief**. You receive two high-level reports: one from the **Technical Strategist** (Price Action, Momentum, Structure) and one from the **Fundamental CIO** (Valuation, Quality, Resilience).

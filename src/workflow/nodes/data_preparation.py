@@ -93,7 +93,8 @@ async def run_orchestrator(state: AgentState):
             "symbol_name": symbol_data["symbol"],
             "name" : symbol_data["short_name"],
             "market_data" : symbol_data["market_data"],
-            "fundamental_analysis" : symbol_data["fundamental_analysis"]
+            "fundamental_analysis" : symbol_data["fundamental_analysis"],
+            "codal": symbol_data.get("news_announcements", {}).get("codal", [])
         },
         "news_social_data": {
             "symbol": symbol_data.get("symbol"),

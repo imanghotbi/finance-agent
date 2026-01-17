@@ -120,6 +120,10 @@ class FundamentalAnalysisOutput(BaseModel):
         ..., 
         description="Synthesis of Valuation. Assessment of the price relative to the quality identified above. (e.g., 'Premium price justified by quality', 'Value Trap')"
     )
+    strategic_outlook: str = Field(
+        ...,
+        description="Synthesis of Codal/Corporate Reports. Assessment of catalysts, management sentiment, and material events found in the reports. (e.g., 'Positive Capital Increase Pending', 'Management warning on supply chain')"
+    )
 
     investment_bias: InvestmentBias = Field(..., description="The final recommendation based on the synthesis of the 3 pillars")
     confidence_score: float = Field(..., ge=0.0, le=1.0, description="Confidence level in the thesis (0.0 to 1.0)")

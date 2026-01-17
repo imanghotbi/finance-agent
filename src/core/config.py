@@ -48,7 +48,7 @@ class Settings(BaseSettings):
 
     @property
     def mongo_uri(self):
-        if self.mongo_username is None or self.mongo_password.get_secret_value() is None:
+        if self.mongo_username is None or self.mongo_password is None or self.mongo_password.get_secret_value() is None:
             return f"mongodb://{self.mongo_endpoint}"
         encoded_password = quote_plus(self.mongo_password.get_secret_value())
         return f"mongodb://{self.mongo_username}:{encoded_password}@{self.mongo_endpoint}"

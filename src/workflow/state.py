@@ -64,6 +64,7 @@ class NewsSocialState(TypedDict):
 class AgentState(TypedDict):
     
     symbol: str
+    messages: list[Any]
     
     # Inputs
     technical_data: Dict[str, Any]

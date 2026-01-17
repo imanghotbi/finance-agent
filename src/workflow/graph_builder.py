@@ -1,4 +1,5 @@
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver
 
 from src.workflow.state import AgentState, TechnicalState, FundamentalState, NewsSocialState
 from src.workflow.nodes.technical import (
@@ -24,7 +25,12 @@ from src.workflow.nodes.social_news import (
     social_news_consensus_node,
 )
 from src.workflow.nodes.reporter import reporter_node
-from src.workflow.nodes.introduction import introduction_node
+from src.workflow.nodes.introduction import (
+    intro_agent_node, 
+    input_node, 
+    tool_node, 
+    should_continue
+)
 from src.workflow.nodes.data_preparation import run_orchestrator as data_preparation_node
 
 
@@ -165,7 +171,9 @@ def build_graph():
     workflow = StateGraph(AgentState)
     
     # Add Nodes
-    workflow.add_node("introduction_node", introduction_node)
+    workflow.add_node("intro_agent", intro_agent_node)
+    workflow.add_node("input_node", input_node)
+    workflow.add_node("tool_node", tool_node)
     workflow.add_node("data_preparation", data_preparation_node)
     
     # Sub-Graphs
@@ -177,10 +185,22 @@ def build_graph():
     workflow.add_node("reporter_agent", reporter_node)
 
     # Entry Point
-    workflow.set_entry_point("introduction_node")
+    workflow.set_entry_point("intro_agent")
     
-    # Flow
-    workflow.add_edge("introduction_node", "data_preparation")
+    # Loop Logic
+    workflow.add_conditional_edges(
+        "intro_agent",
+        should_continue,
+        {
+            "tool_node": "tool_node",
+            "input_node": "input_node"
+        }
+    )
+    
+    workflow.add_edge("input_node", "intro_agent")
+    workflow.add_edge("tool_node", "data_preparation")
+    
+    # Main Workflow
     workflow.add_edge("data_preparation", "dispatch_master")
     
     # Dispatcher for Parallel Execution
@@ -202,7 +222,9 @@ def build_graph():
     workflow.add_edge("social_news_graph", "reporter_agent")
     
     workflow.add_edge("reporter_agent", END)
-
-    return workflow.compile()
+    
+    memory = MemorySaver()
+    # No explicit interrupt_before/after needed as we use interrupt() in the node
+    return workflow.compile(checkpointer=memory)
 
 app = build_graph()

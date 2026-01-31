@@ -27,6 +27,9 @@ from src.schema.social_news import (
 def merge_dicts(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
     return {**a, **b}
 
+def update_latest(old, new):
+    return new
+
 class TechnicalState(TypedDict):
     symbol: str
     visual_data: Dict[str, Any]
@@ -63,7 +66,7 @@ class NewsSocialState(TypedDict):
 
 class AgentState(TypedDict):
     
-    symbol: str
+    symbol: Annotated[str, update_latest]
     messages: list[Any]
     
     # Inputs

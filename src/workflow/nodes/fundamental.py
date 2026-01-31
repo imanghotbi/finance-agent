@@ -30,10 +30,12 @@ from src.utils.helper import (
 from src.services.fundamental.balance_sheet import BalanceSheetAgent
 from src.services.fundamental.earnings_cash import EarningsQualityAgent
 from src.services.fundamental.valuation_market import ValuationAgent
+from src.core.logger import logger
 
 llm = LLMFactory.get_model()
 
 async def balance_sheet_node(state: FundamentalState):
+    logger.info("📊 Starting Balance Sheet Analysis Node...")
     agent = BalanceSheetAgent(state["fundamental_data"])
     data = agent.process()
     
@@ -54,9 +56,12 @@ async def balance_sheet_node(state: FundamentalState):
     response = {"balance_sheet_report": result}
     if meta:
         response["balance_sheet_meta"] = meta
+    
+    logger.info("✅ Balance Sheet Analysis Completed.")
     return response
 
 async def earnings_quality_node(state: FundamentalState):
+    logger.info("💰 Starting Earnings Quality Analysis Node...")
     agent = EarningsQualityAgent(state["fundamental_data"])
     data = agent.process()
     
@@ -77,9 +82,12 @@ async def earnings_quality_node(state: FundamentalState):
     response = {"earnings_quality_report": result}
     if meta:
         response["earnings_quality_meta"] = meta
+    
+    logger.info("✅ Earnings Quality Analysis Completed.")
     return response
 
 async def valuation_node(state: FundamentalState):
+    logger.info("🏷️ Starting Valuation Analysis Node...")
     agent = ValuationAgent(state["fundamental_data"])
     data = agent.process()
     
@@ -100,9 +108,12 @@ async def valuation_node(state: FundamentalState):
     response = {"valuation_report": result}
     if meta:
         response["valuation_meta"] = meta
+    
+    logger.info("✅ Valuation Analysis Completed.")
     return response
 
 async def codal_agent_node(state: FundamentalState):
+    logger.info("📜 Starting Codal Report Analysis Node...")
     data = state["fundamental_data"].get("codal", [])
     symbol = state.get("symbol", "")
     
@@ -125,7 +136,7 @@ async def codal_agent_node(state: FundamentalState):
             if publish_date >= sixty_days_ago:
                 filtered_data.append(item)
         except Exception as e:
-            print(f"Error parsing date for item {item['id']}: {e}")
+            logger.error(f"❌ Error parsing date for item {item.get('id', 'unknown')}: {e}")
 
     # Sort filtered data by publishDate (newest first)
     sorted_filtered_data = sorted(
@@ -137,25 +148,29 @@ async def codal_agent_node(state: FundamentalState):
     filtered_reports = sorted_filtered_data[:20]
     clean_filtered_reports = [{'id':x['id'] , 'title':x['title']} for x in filtered_reports]
 
+    logger.info(f"🔎 Found {len(clean_filtered_reports)} relevant Codal reports (last 60 days).")
+
     # 2. Select Relevant Reports
-    codal_list_prompt = CODAL_LIST_PROMPT.format(symbol=symbol), data=json.dumps(clean_filtered_reports, ensure_ascii=False)
+    codal_list_prompt = CODAL_LIST_PROMPT.format(symbol=symbol, data='\n'.join(json.dumps(d,ensure_ascii=False) for d in clean_filtered_reports))
     prompt_value_select = [HumanMessage(content=codal_list_prompt)]
 
     selection_result, _ = await _invoke_structured_with_recovery(llm, prompt_value_select, CodalReportSelection)
     
     final_codal_list = [x for x in clean_filtered_reports if x['id'] in selection_result.selected_ids]
+    logger.info(f"📌 Selected {len(final_codal_list)} reports for detailed analysis.")
 
     # 3. Scrape Content
     scraped_contents = []
-    for data in final_codal_list:
+    for data in filtered_reports:
         url = data['url']
         try:
             content = await scrape_codal_report(url)
             scraped_contents.append(content[:2000]) # Truncate to avoid context limit
         except Exception as e:
-            print(f"Failed to scrape {url}: {e}")
+            logger.warning(f"⚠️ Failed to scrape {url}: {e}")
 
     if not scraped_contents:
+        logger.warning("⚠️ No accessible reports found for Codal analysis.")
         return {"codal_report": CodalAnalysisOutput(key_findings=["No accessible reports found"], summary="Unable to analyze codal reports.")}
 
     # 4. Analyze Content
@@ -170,15 +185,18 @@ async def codal_agent_node(state: FundamentalState):
     response = {"codal_report": analysis_result}
     if meta:
         response["codal_meta"] = meta
+    
+    logger.info("✅ Codal Analysis Completed.")
     return response
 
 async def fundamental_consensus_node(state: FundamentalState):
+    logger.info("🤝 Starting Fundamental Consensus Node...")
     # GATEKEEPER CHECK
     required_keys = ["balance_sheet_report", "earnings_quality_report", "valuation_report","codal_report"]
     missing = [key for key in required_keys if not state.get(key)]
     
     if missing:
-        print(f"Fundamental Consensus: Waiting for inputs: {missing}")
+        logger.warning(f"⏳ Fundamental Consensus waiting for inputs: {missing}")
         return {}
         
     user_content = """
@@ -213,4 +231,6 @@ async def fundamental_consensus_node(state: FundamentalState):
     response = {"fundamental_consensus_report": result}
     if meta:
         response["fundamental_consensus_meta"] = meta
+    
+    logger.info("✅ Fundamental Consensus Completed.")
     return response

@@ -32,6 +32,7 @@ from src.workflow.nodes.introduction import (
     should_continue
 )
 from src.workflow.nodes.data_preparation import run_orchestrator as data_preparation_node
+from src.core.logger import logger
 
 
 # ==========================================
@@ -225,6 +226,8 @@ def build_graph():
     
     memory = MemorySaver()
     # No explicit interrupt_before/after needed as we use interrupt() in the node
-    return workflow.compile(checkpointer=memory)
+    app = workflow.compile(checkpointer=memory)
+    logger.info("Graph constructed and compiled successfully.")
+    return app
 
 app = build_graph()

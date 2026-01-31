@@ -23,11 +23,13 @@ from src.core.prompt import (
     TECHNICAL_AGENT,
 )
 from src.utils.helper import create_prompt, _invoke_structured_with_recovery
+from src.core.logger import logger
 
 
 llm = LLMFactory.get_model()
 
 async def trend_agent_node(state: TechnicalState):
+    logger.info("📈 Starting Trend Analysis Node...")
     data = state["technical_data"].get("trend", {})
     visual = state["technical_data"].get("visuals", {})
     ##TODO check this for input data
@@ -50,9 +52,12 @@ async def trend_agent_node(state: TechnicalState):
     response = {"trend_report": result}
     if meta:
         response["trend_meta"] = meta
+    
+    logger.info("✅ Trend Analysis Completed.")
     return response
 
 async def oscillator_agent_node(state: TechnicalState):
+    logger.info("〰️ Starting Oscillator Analysis Node...")
     # Mapping 'oscillators' from input key usually found in 'technical_analysis'
     data = state["technical_data"].get("oscillators", {})
     visual = state["technical_data"].get("visuals", {})
@@ -75,9 +80,12 @@ async def oscillator_agent_node(state: TechnicalState):
     response = {"oscillator_report": result}
     if meta:
         response["oscillator_meta"] = meta
+    
+    logger.info("✅ Oscillator Analysis Completed.")
     return response
 
 async def volatility_agent_node(state: TechnicalState):
+    logger.info("🌩️ Starting Volatility Analysis Node...")
     data = state["technical_data"].get("volatility", {})
     visual = state["technical_data"].get("visuals", {})
     input_data = {
@@ -99,9 +107,12 @@ async def volatility_agent_node(state: TechnicalState):
     response = {"volatility_report": result}
     if meta:
         response["volatility_meta"] = meta
+    
+    logger.info("✅ Volatility Analysis Completed.")
     return response
 
 async def volume_agent_node(state: TechnicalState):
+    logger.info("📊 Starting Volume Analysis Node...")
     data = state["technical_data"].get("volume", {})
     visual = state["technical_data"].get("visuals", {})
     input_data = {
@@ -123,9 +134,12 @@ async def volume_agent_node(state: TechnicalState):
     response = {"volume_report": result}
     if meta:
         response["volume_meta"] = meta
+    
+    logger.info("✅ Volume Analysis Completed.")
     return response
 
 async def sr_agent_node(state: TechnicalState):
+    logger.info("🧱 Starting S/R Analysis Node...")
     data = state["technical_data"].get("support_resistance", {})
     visual = state["technical_data"].get("visuals", {})
     input_data = {
@@ -148,9 +162,12 @@ async def sr_agent_node(state: TechnicalState):
     response = {"sr_report": result}
     if meta:
         response["sr_meta"] = meta
+    
+    logger.info("✅ S/R Analysis Completed.")
     return response
 
 async def smart_money_agent_node(state: TechnicalState):
+    logger.info("🏦 Starting Smart Money Analysis Node...")
     input_data = state["technical_data"].get("smart_money", {})
     user_content = (
     "INPUT JSON:\n{input_json}\n\n"
@@ -168,15 +185,18 @@ async def smart_money_agent_node(state: TechnicalState):
     response = {"smart_money_report": result}
     if meta:
         response["smart_money_meta"] = meta
+    
+    logger.info("✅ Smart Money Analysis Completed.")
     return response
 
 async def technical_consensus_node(state: TechnicalState):
+    logger.info("🧠 Starting Technical Consensus Node...")
 
     required_keys = ["trend_report", "oscillator_report", "volatility_report", "volume_report", "sr_report", "smart_money_report"]
     missing = [key for key in required_keys if not state.get(key)]
     
     if missing:
-        print(f"Technical Consensus: Waiting for inputs: {missing}")
+        logger.warning(f"⏳ Technical Consensus waiting for inputs: {missing}")
         return {}
         
     user_content = """
@@ -221,4 +241,6 @@ async def technical_consensus_node(state: TechnicalState):
     response = {"technical_consensus_report": result}
     if meta:
         response["technical_consensus_meta"] = meta
+    
+    logger.info("✅ Technical Consensus Completed.")
     return response

@@ -216,3 +216,10 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .DS_store
+
+
+#iman_add
+GEMINI.MD
+*.json
+*.txt
+test.py

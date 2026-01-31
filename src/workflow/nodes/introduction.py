@@ -8,6 +8,9 @@ from src.workflow.state import AgentState
 from src.utils.llm_factory import LLMFactory
 from src.core.logger import logger
 from src.core.prompt import INTRODUCTION_PROMPT
+##TODO add this
+from langchain_core.output_parsers import StrOutputParser
+
 
 # 1. Define the Tool
 @tool
@@ -25,7 +28,7 @@ async def intro_agent_node(state: AgentState):
     # Ensure system prompt is first
     if not messages or not isinstance(messages[0], SystemMessage):
         messages = [SystemMessage(content=INTRODUCTION_PROMPT)] + messages
-    
+    ##TODO check each llm need reason or not
     llm = LLMFactory.get_model(temperature=0.5, tools=[set_symbol])
     
     logger.info("🤖 Agent thinking...")
@@ -40,8 +43,8 @@ def input_node(state: AgentState):
     logger.info("⏳ Waiting for user input...")
     user_input = interrupt(value="user_input")
     
-    # If main.py sends a Command(resume="exit"), we can handle it, 
-    # but typically it resumes with the text string.
+    if not user_input or str(user_input).lower() in ["exit", "quit"]:
+        return Command(goto=END)
     
     if not user_input:
         # Should not happen if main.py handles it, but safety check

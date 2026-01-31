@@ -4,10 +4,13 @@ from src.utils.llm_factory import LLMFactory
 from src.workflow.state import AgentState
 from src.core.prompt import REPORTER_AGENT
 from src.utils.helper import create_prompt
+from src.core.logger import logger
 
 llm = LLMFactory.get_model()
 
 async def reporter_node(state: AgentState):
+    logger.info("📝 Starting Reporter Node...")
+    
     # GATEKEEPER CHECK: Ensure all three consensus reports are present.
     # This prevents running the reporter on partial data if one subgraph finishes early.
     tech_consensus = state.get("technical_consensus_report")
@@ -15,7 +18,11 @@ async def reporter_node(state: AgentState):
     social_consensus = state.get("social_news_consensus_report")
 
     if not tech_consensus or not fund_consensus or not social_consensus:
-        print("Reporter Node: Waiting for Technical, Fundamental, and Social/News consensus...")
+        missing = []
+        if not tech_consensus: missing.append("Technical")
+        if not fund_consensus: missing.append("Fundamental")
+        if not social_consensus: missing.append("Social/News")
+        logger.warning(f"⏳ Reporter Node waiting for consensus reports: {missing}")
         # Return empty update to signal no change yet
         return {}
 
@@ -47,4 +54,6 @@ async def reporter_node(state: AgentState):
     # Simple invoke for text output
     response_msg = await llm.ainvoke(prompt_value)
     
+    logger.info("✅ Reporter Node Completed. Final report generated.")
+    ## TODO save this final state and save usage
     return {"final_report": response_msg.content}

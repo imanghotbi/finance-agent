@@ -14,10 +14,9 @@ class LLMFactory:
             model=settings.model_name,
             api_key=settings.model_api_key.get_secret_value(),
             temperature=temperature,
-            max_output_tokens=max_output_tokens or settings.max_tokens,
-            top_p= top_p or settings.top_p,
-            extra_body = {'chat_template_kwargs':{'thinking':thinking}},
-            proxies = settings.proxy_url
+            max_tokens=max_output_tokens or settings.max_tokens,
+            # top_p= top_p or settings.top_p,
+            model_kwargs = {'chat_template_kwargs':{'thinking':thinking}},
         )
         if structured_output:
             return llm.with_structured_output(structured_output)

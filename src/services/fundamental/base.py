@@ -1,6 +1,9 @@
+from src.core.logger import logger
+
 class BaseFundamentalAgent:
     def __init__(self, fundamental_data):
         self.data = fundamental_data
+        self.logger = logger
         
         # Common Access Points
         self.symbol_name = self.data.get('symbol_name','UNKNOWN')

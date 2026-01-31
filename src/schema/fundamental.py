@@ -89,7 +89,7 @@ class ValuationOutput(BaseModel):
 # ----------------------------
 
 class CodalReportSelection(BaseModel):
-    selected_ids: List[str] = Field(..., description="List of IDs of the most relevant financial reports")
+    selected_ids: List = Field(..., description="List of IDs of the most important financial codal reports like [codal_1 , ...]")
 
 class CodalAnalysisOutput(BaseModel):
     key_findings: List[str] = Field(..., description="List of key points extracted from the reports")

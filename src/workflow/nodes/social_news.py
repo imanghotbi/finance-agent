@@ -16,10 +16,12 @@ from src.core.prompt import (
     SOCIAL_NEWS_AGENT_PROMPT,
 )
 from src.utils.helper import create_prompt, _invoke_structured_with_recovery , parse_iso_date
+from src.core.logger import logger
 
 llm = LLMFactory.get_model()
 
 async def twitter_agent_node(state: NewsSocialState):
+    logger.info("🐦 Starting Twitter Analysis Node...")
     data = state["news_social_data"].get("rapid_tweet", [])
     symbol = state["news_social_data"].get("symbol", "")
     short_name = state["news_social_data"].get("short_name", "")
@@ -37,6 +39,8 @@ async def twitter_agent_node(state: NewsSocialState):
             "views": t.get("views"),
             "created_at": t.get("created_at")
         })
+
+    logger.info(f"🐦 Analyzed top {len(cleaned_tweets)} tweets for {symbol}.")
 
     input_data = {
         "symbol": symbol,
@@ -59,9 +63,11 @@ async def twitter_agent_node(state: NewsSocialState):
     prompt_value = (to_prompt_vars | prompt).invoke(input_data)
     result, meta = await _invoke_structured_with_recovery(llm, prompt_value, SocialSentimentOutput)
     
+    logger.info("✅ Twitter Analysis Completed.")
     return {"twitter_report": result}
 
 async def sahamyab_agent_node(state: NewsSocialState):
+    logger.info("💬 Starting Sahamyab Analysis Node...")
     data = state["news_social_data"].get("latest_sahamyab_tweet", [])
     symbol = state["news_social_data"].get("symbol", "")
     short_name = state["news_social_data"].get("short_name", "")
@@ -84,6 +90,8 @@ async def sahamyab_agent_node(state: NewsSocialState):
             "retwitCount": c.get("retwitCount")
         })
     
+    logger.info(f"💬 Analyzed top {len(cleaned_comments)} Sahamyab comments for {symbol}.")
+
     input_data = {
         "symbol": symbol,
         "short_name": short_name,
@@ -105,9 +113,11 @@ async def sahamyab_agent_node(state: NewsSocialState):
     prompt_value = (to_prompt_vars | prompt).invoke(input_data)
     result, meta = await _invoke_structured_with_recovery(llm, prompt_value, RetailPulseAnalysis)
     
+    logger.info("✅ Sahamyab Analysis Completed.")
     return {"sahamyab_report": result}
 
 async def news_agent_node(state: NewsSocialState):
+    logger.info("📰 Starting News Analysis Node...")
     data = state["news_social_data"].get("news", [])
     symbol = state["news_social_data"].get("symbol", "")
     short_name = state["news_social_data"].get("short_name", "")
@@ -119,7 +129,7 @@ async def news_agent_node(state: NewsSocialState):
         try:
             current_date_dt = parse_iso_date(analysis_date_str)
             if current_date_dt:
-                threshold_date = current_date_dt - timedelta(days=30)
+                threshold_date = current_date_dt - timedelta(days=60) ##TODO FIX THIS
                 
                 # Filter last 30 days
                 valid_news = []
@@ -127,7 +137,7 @@ async def news_agent_node(state: NewsSocialState):
                     news_date_str = n.get("date")
                     news_dt = parse_iso_date(news_date_str)
                     
-                    if news_dt and news_dt >= threshold_date:
+                    if news_dt and news_dt >= threshold_date.replace(tzinfo=timezone.utc):
                         valid_news.append(n)
                 
                 # Sort by date descending
@@ -140,7 +150,7 @@ async def news_agent_node(state: NewsSocialState):
                 # Fallback if parsing fails
                 filtered_news = data[:10]
         except Exception as e:
-            print(f"Error filtering news dates: {e}")
+            logger.error(f"❌ Error filtering news dates: {e}")
             filtered_news = data[:10]
     else:
         filtered_news = data[:10]
@@ -153,6 +163,8 @@ async def news_agent_node(state: NewsSocialState):
             "body": n.get("body"),
             "type": n.get("type")
         })
+
+    logger.info(f"📰 Analyzed {len(cleaned_news)} news items for {symbol}.")
 
     input_data = {
         "symbol": symbol,
@@ -175,15 +187,17 @@ async def news_agent_node(state: NewsSocialState):
     prompt_value = (to_prompt_vars | prompt).invoke(input_data)
     result, meta = await _invoke_structured_with_recovery(llm, prompt_value, FundamentalNewsAnalysis)
     
+    logger.info("✅ News Analysis Completed.")
     return {"news_report": result}
 
 async def social_news_consensus_node(state: NewsSocialState):
+    logger.info("📣 Starting Social & News Consensus Node...")
     # Gatekeeper Check
     required_keys = ["twitter_report", "sahamyab_report", "news_report"]
     missing = [key for key in required_keys if not state.get(key)]
     
     if missing:
-        print(f"Social News Consensus: Waiting for inputs: {missing}")
+        logger.warning(f"⏳ Social News Consensus waiting for inputs: {missing}")
         return {}
         
     tavily_answer = state["news_social_data"].get("search_tavily_answer", "")
@@ -215,4 +229,5 @@ async def social_news_consensus_node(state: NewsSocialState):
     prompt_value = (to_prompt_vars | prompt).invoke(input_data)
     result, meta = await _invoke_structured_with_recovery(llm, prompt_value, NewsSocialFusionOutput)
     
+    logger.info("✅ Social & News Consensus Completed.")
     return {"social_news_consensus_report": result}

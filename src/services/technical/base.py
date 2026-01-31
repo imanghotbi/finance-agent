@@ -3,6 +3,7 @@ import numpy as np
 import io
 from scipy import stats
 from abc import ABC, abstractmethod
+from src.core.logger import logger
 
 class BaseTechnicalAnalyzer(ABC):
     """
@@ -11,6 +12,7 @@ class BaseTechnicalAnalyzer(ABC):
     """
     def __init__(self, data_source, symbol="UNKNOWN"):
         self.symbol = symbol
+        self.logger = logger
         self.df = self._load_data(data_source)
         self._validate_data()
 

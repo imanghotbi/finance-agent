@@ -24,7 +24,7 @@ def _prompt_to_text(prompt_value: Any) -> str:
         return prompt_value.to_string()
     return str(prompt_value)
 
-
+## TODO add retry with tencty
 async def _invoke_structured_with_recovery(
     llm: Any,
     prompt_value: Any,
@@ -33,6 +33,8 @@ async def _invoke_structured_with_recovery(
 ) -> Tuple[BaseModel, Optional[Dict[str, str]]]:
     try:
         out = await llm.with_structured_output(schema_model).ainvoke(prompt_value)
+        if not out:
+            raise
         return out, None
     except Exception:
         prompt_text = _prompt_to_text(prompt_value)
@@ -47,6 +49,7 @@ async def _invoke_structured_with_recovery(
         raw_msg = await llm.ainvoke(fix_prompt)
         raw = raw_msg.content if hasattr(raw_msg, "content") else str(raw_msg)
         try:
+            raw = raw.replace('```','').replace('json','')
             out = schema_model.model_validate_json(raw)
             return out, {"recovered": "fix_prompt"}
         except ValidationError:
@@ -58,6 +61,7 @@ No extra text. Use null when unknown.
 """
             raw2_msg = await llm.ainvoke(fallback_prompt + "\n\n" + prompt_text)
             raw2 = raw2_msg.content if hasattr(raw2_msg, "content") else str(raw2_msg)
+            raw2 = raw2.replace('```','').replace('json','')
             out = schema_model.model_validate_json(raw2)
             return out, {"recovered": "json_only_fallback"}
 
@@ -85,7 +89,7 @@ async def scrape_codal_report(url: str) -> str:
     ssl_context.verify_mode = ssl.CERT_NONE
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, ssl=ssl_context, timeout=10) as response:
+        async with session.get(url, ssl=ssl_context, timeout=30) as response:
             response.raise_for_status()
             content = await response.read()
             

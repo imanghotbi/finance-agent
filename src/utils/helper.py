@@ -127,3 +127,14 @@ def parse_persian_date(date_str):
         gregorian_date = gregorian_date.replace(hour=hour, minute=minute)
     
     return gregorian_date
+
+
+def ensure_object(data, schema_class):
+    """Converts a dict to a Pydantic object if necessary."""
+    if isinstance(data, dict):
+        try:
+            return schema_class(**data)
+        except Exception as e:
+            print(f"Error converting to {schema_class.__name__}: {e}")
+            return None
+    return data

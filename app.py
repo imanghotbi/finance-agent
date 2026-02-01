@@ -60,10 +60,12 @@ async def run_graph(inputs):
     reports_shown = cl.user_session.get("reports_shown")
     
     # Progress Tracking
-    # Adjusted total steps estimate based on your node count
     TOTAL_STEPS = 18
     completed_steps = 0
     research_step = None 
+    
+    # Placeholder to store the final report data
+    final_report_payload = None
 
     print(f"--- Graph Start for Thread {thread_id} ---")
 
@@ -85,9 +87,9 @@ async def run_graph(inputs):
 
             if node_name == "data_preparation":
                 if not research_step:
-                    research_step = cl.Step(name="Market Research (0%)", type="process")
+                    await cl.Message(content="🔄 آغاز بررسی جامع نماد بورسی ...").send()
+                    research_step = cl.Step(name="Market Research (0%)", type="process" , parent_id=cl.context.current_step.id)
                     await research_step.send()
-                    await cl.Message(content="🔄 comprehensive symbol analysis initialized...").send()
 
             # Define worker nodes for progress calculation
             worker_nodes = [
@@ -102,10 +104,8 @@ async def run_graph(inputs):
             # --- 3. Update Progress ---
             if node_name in worker_nodes:
                 completed_steps += 1
-                # Cap at 95% until final reporter finishes
                 percent = min(int((completed_steps / TOTAL_STEPS) * 100), 95)
                 
-                # Only update if the step has been created (i.e., we are past data_preparation)
                 if research_step:
                     research_step.name = f"Market Research ({percent}%)"
                     await research_step.update()
@@ -114,10 +114,7 @@ async def run_graph(inputs):
             
             # Technical Report
             if node_name == "technical_consensus" or (node_name == "technical_graph" and not reports_shown["technical"]):
-                # Logic to handle both direct node output and subgraph output
                 raw_data = node_output if node_name == "technical_consensus" else node_output.get("technical_consensus_report")
-                
-                # Unwrap dict if nested
                 if isinstance(raw_data, dict) and "technical_consensus_report" in raw_data:
                     raw_data = raw_data["technical_consensus_report"]
 
@@ -130,7 +127,6 @@ async def run_graph(inputs):
             # Fundamental Report
             if node_name == "fundamental_consensus" or (node_name == "fundamental_graph" and not reports_shown["fundamental"]):
                 raw_data = node_output if node_name == "fundamental_consensus" else node_output.get("fundamental_consensus_report")
-                
                 if isinstance(raw_data, dict) and "fundamental_consensus_report" in raw_data:
                     raw_data = raw_data["fundamental_consensus_report"]
 
@@ -143,7 +139,6 @@ async def run_graph(inputs):
             # Social Report
             if node_name == "social_news_consensus" or (node_name == "social_news_graph" and not reports_shown["social"]):
                 raw_data = node_output if node_name == "social_news_consensus" else node_output.get("social_news_consensus_report")
-
                 if isinstance(raw_data, dict) and "social_news_consensus_report" in raw_data:
                     raw_data = raw_data["social_news_consensus_report"]
 
@@ -153,23 +148,31 @@ async def run_graph(inputs):
                         report_obj = ensure_object(raw_data, NewsSocialFusionOutput)
                         step.output = render_social_report(report_obj) if report_obj else "Error parsing data"
 
-            # --- 5. Final Reporter (Ordering Fix) ---
+            # --- 5. Capture Final Report & Close Step ---
             if node_name == "reporter_agent":
-                
-                if research_step:
-                    research_step.name = "Market Research (100%) - Completed"
-                    research_step.output = "All analysis modules finished successfully."
-                    await research_step.update()
-                    
-                    # Force UI to finish rendering the collapse animation
-                    await cl.sleep(1) 
-                
+                # 2. Capture the data, but DO NOT send the message yet
                 final = node_output.get("final_report") 
                 if final:
-                    await cl.Message(content=render_final_report(final)).send()
+                    final_report_payload = final
             
             # Persist State
             cl.user_session.set("reports_shown", reports_shown)
+
+    # --- 6. Send Final Report AFTER Loop Ends ---
+    # This ensures the graph stream is closed and the previous Step is fully rendered/settled.
+    final_msg = None
+    if final_report_payload:
+        final_msg = cl.Message(content="⏳ در حال تنظیم گزارش نهایی...")
+        await final_msg.send()
+
+    if research_step:
+        research_step.name = "Market Research (100%) - Completed"
+        research_step.output = "تمام مراحل با موفقیت انجام شد."
+        await research_step.update()
+    
+    await asyncio.sleep(0.5)
+    if final_report_payload:
+        await cl.Message(content=render_final_report(final_report_payload) , parent_id=None).send()
 
     # Handle Interrupts
     snapshot = await graph_app.aget_state(config)

@@ -4,6 +4,10 @@
     src: url("/public/fonts/Vazirmatn-Regular.ttf") format('truetype');
 }
 
+div.ai-message {
+    direction: rtl !important; /* Agent messages RTL */
+}
+
 div[role="article"] {
   direction: rtl;
   text-align: right;

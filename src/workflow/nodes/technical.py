@@ -32,7 +32,7 @@ async def trend_agent_node(state: TechnicalState):
     logger.info("📈 Starting Trend Analysis Node...")
     data = state["technical_data"].get("trend", {})
     visual = state["technical_data"].get("visuals", {})
-    ##TODO check this for input data
+    
     input_data = {
         **data ,
         **visual

@@ -8,8 +8,6 @@ from src.workflow.state import AgentState
 from src.utils.llm_factory import LLMFactory
 from src.core.logger import logger
 from src.core.prompt import INTRODUCTION_PROMPT
-##TODO add this
-from langchain_core.output_parsers import StrOutputParser
 
 
 # 1. Define the Tool

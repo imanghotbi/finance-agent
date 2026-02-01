@@ -129,7 +129,7 @@ async def news_agent_node(state: NewsSocialState):
         try:
             current_date_dt = parse_iso_date(analysis_date_str)
             if current_date_dt:
-                threshold_date = current_date_dt - timedelta(days=60) ##TODO FIX THIS
+                threshold_date = current_date_dt - timedelta(days=30)
                 
                 # Filter last 30 days
                 valid_news = []

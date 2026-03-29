@@ -146,7 +146,7 @@ async def codal_agent_node(state: FundamentalState):
     )
     
     filtered_reports = sorted_filtered_data[:20]
-    clean_filtered_reports = [{'id':x['id'] , 'title':x['title']} for x in filtered_reports]
+    clean_filtered_reports = [{'id':x['id'], 'title':x['title'], 'url':x['url']} for x in filtered_reports]
 
     logger.info(f"🔎 Found {len(clean_filtered_reports)} relevant Codal reports (last 60 days).")
 
@@ -161,7 +161,7 @@ async def codal_agent_node(state: FundamentalState):
 
     # 3. Scrape Content
     scraped_contents = []
-    for data in filtered_reports:
+    for data in final_codal_list:
         url = data['url']
         try:
             content = await scrape_codal_report(url)

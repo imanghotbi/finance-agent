@@ -91,7 +91,7 @@ class TavilyClient:
             debug_payload['query'] = debug_payload['query'][:50] + "..."
         logger.debug(f"Sending Tavily Request: {debug_payload}")
         try:
-            async with self.session.post(endpoint, json=payload,proxy=self.proxy_url) as response:
+            async with self.session.post(endpoint, json=payload,proxy=self.proxy_url, timeout=self.timeout, ssl=False) as response:
                 if response.status != 200:
                     error_msg = f"Tavily API Error {response.status}: {response.reason}"
                     try:

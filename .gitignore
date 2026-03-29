@@ -220,6 +220,6 @@ __marimo__/
 
 #iman_add
 GEMINI.MD
-*.json
 *.txt
 test.py
+/mongo_data

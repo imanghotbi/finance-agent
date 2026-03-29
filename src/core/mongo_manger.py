@@ -72,17 +72,20 @@ class MongoManager:
             logger.error(f"❌ Error during upsert: {e}", exc_info=True)
             return None
 
-    async def read_data(self, query: dict, limit: int = 1):
+    async def read_data(self, query: dict, limit: int = 1, sort: list[tuple[str, int]] | None = None):
         """
         Reads data based on a query filter. 
         If limit is 1, returns a single dict. Otherwise returns a list.
         """
         try:
             if limit == 1:
-                document = await self.collection.find_one(query)
+                document = await self.collection.find_one(query, sort=sort)
                 return document
             else:
-                cursor = self.collection.find(query).limit(limit)
+                cursor = self.collection.find(query)
+                if sort:
+                    cursor = cursor.sort(sort)
+                cursor = cursor.limit(limit)
                 documents = await cursor.to_list(length=limit)
                 return documents
         except OperationFailure as e:
@@ -95,5 +98,4 @@ class MongoManager:
     def close(self):
         self.client.close()
         logger.info("🔒 MongoDB Connection Closed")
-
 

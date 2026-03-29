@@ -67,7 +67,7 @@ class RahavardClient:
         
         logger.debug(f"Requesting: {method} {self.base_url}/{endpoint} | Params: {params}")
 
-        async with self.session.request(method, url, params=params) as response:
+        async with self.session.request(method, url, params=params, ssl=False , timeout=self.timeout) as response:
             if response.status != 200:
                 error_msg = f"API Error {response.status}: {response.reason} for URL: {url}"
                 raise RahavardError(error_msg)

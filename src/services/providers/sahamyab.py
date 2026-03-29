@@ -64,7 +64,7 @@ class SahamyabClient:
 
         logger.debug(f"Requesting: {method} {self.base_url}/{endpoint} | Params: {params}")
 
-        async with self.session.request(method, endpoint, params=params, json=json_data) as response:
+        async with self.session.request(method, endpoint, params=params, json=json_data, timeout=self.timeout, ssl=False) as response:
             if response.status != 200:
                 error_msg = f"API Error {response.status}: {response.reason} for URL: {endpoint}"
                 raise SahamyabError(error_msg)

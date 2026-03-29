@@ -75,6 +75,10 @@ def should_continue(state: AgentState) -> Literal["tool_node", "input_node"]:
     Decides whether to go to the tool execution (next stage) or wait for input.
     """
     messages = state.get("messages", [])
+    if not messages:
+        logger.warning("No messages found in intro state; routing back to input.")
+        return "input_node"
+
     last_msg = messages[-1]
     
     if isinstance(last_msg, AIMessage) and last_msg.tool_calls:

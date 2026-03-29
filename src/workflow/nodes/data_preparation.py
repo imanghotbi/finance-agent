@@ -1,12 +1,24 @@
 import asyncio
 from datetime import datetime
-from typing import Optional
 
 from src.core.mongo_manger import MongoManager
 from src.workflow.state import AgentState
 from src.services.prepare_data import StockAnalysisPipeline
 from src.core.logger import logger
-from src.workflow.nodes.mock_data import mock_data
+
+
+async def get_latest_symbol_data(symbol: str) -> dict | None:
+    """Fetch the latest stored analysis document for a symbol."""
+    mongo = MongoManager()
+
+    try:
+        return await mongo.read_data(
+            {"symbol": symbol},
+            limit=1,
+            sort=[("analysis_datetime", -1)],
+        )
+    finally:
+        mongo.close()
 
 async def should_run_pipeline(symbol: str) -> bool:
     """
@@ -15,11 +27,8 @@ async def should_run_pipeline(symbol: str) -> bool:
       1. The symbol does not exist in the DB.
       2. The symbol exists but 'analysis_datetime' is not from today.
     """
-    mongo = MongoManager()
-    
     try:
-        query = {"symbol": symbol}
-        document = await mongo.read_data(query, limit=1)
+        document = await get_latest_symbol_data(symbol)
 
         if not document:
             logger.info(f"🔎 Symbol '{symbol}' not found in DB. Scheduling analysis.")
@@ -57,34 +66,33 @@ async def should_run_pipeline(symbol: str) -> bool:
 
     except Exception as e:
         logger.error(f"❌ Error checking DB status for '{symbol}': {e}", exc_info=True)
-        return False
-    finally:
-        # strict resource cleanup
-        mongo.close()
+        logger.warning(f"⚠️ Falling back to pipeline execution for '{symbol}' because cache validation failed.")
+        return True
 
 async def run_orchestrator(state: AgentState):
     """
     Orchestrates the check and execution flow.
     """
     symbol = state["symbol"]
-    logger.info(f"--- 🏁 Starting Mock Orchestrator for {symbol} ---")
+    logger.info(f"--- 🏁 Starting Data Orchestrator for {symbol} ---")
     
     # 1. Check Condition
-    # run_required = await should_run_pipeline(symbol) ##TODO uncomment this after mongo is okay
-    run_required = False
+    run_required = await should_run_pipeline(symbol)
+
     # 2. Execute if needed
     if run_required:
         try:
             logger.info(f"🚀 Initializing Pipeline for: {symbol}")
             pipeline = StockAnalysisPipeline(symbol)
-            await pipeline.execute() ##TODO store and return data
+            await pipeline.execute()
             logger.info(f"✨ Pipeline execution finished for: {symbol}")
         except Exception as e:
             logger.critical(f"🔥 Pipeline execution failed: {e}", exc_info=True)
-    else:
-        ##TODO read data from mongo if run_required equals false
-        # logger.info(f"zzz No action needed for {symbol}.") ##TODO this is temperory
-        symbol_data = await mock_data()
+
+    # 3. Load the latest stored data regardless of whether we reused cache or refreshed it.
+    symbol_data = await get_latest_symbol_data(symbol)
+    if not symbol_data:
+        raise RuntimeError(f"No stored analysis data found for symbol '{symbol}' after preparation.")
 
     logger.info("--- 🏁 Orchestrator Finished ---")
     return {
@@ -115,7 +123,7 @@ if __name__ == "__main__":
     TARGET_SYMBOL = "فملی"
     
     try:
-        asyncio.run(run_orchestrator(TARGET_SYMBOL))
+        data = asyncio.run(run_orchestrator({"symbol": TARGET_SYMBOL}))
     except KeyboardInterrupt:
         logger.info("🛑 Execution stopped by user.")
     except Exception as e:

@@ -89,7 +89,7 @@ class TwitterRapidClient:
 
         try:
             # aiohttp handles proxies via the 'proxy' parameter on individual requests
-            async with self.session.get(url=endpoint ,params=params, proxy=self.proxy_url) as response:
+            async with self.session.get(url=endpoint ,params=params, proxy=self.proxy_url, timeout=self.timeout, ssl=False) as response:
                 if response.status != 200:
                     error_msg = f"API Error {response.status}: {response.reason}"
                     # RapidAPI often sends detailed error messages in the body

@@ -36,7 +36,12 @@ async def _invoke_structured_with_recovery(
         if not out:
             raise
         return out, None
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "Structured output invocation failed for schema %s; attempting recovery.",
+            schema_model.__name__,
+            exc_info=exc,
+        )
         prompt_text = _prompt_to_text(prompt_value)
         fix_prompt = f"""
         Return ONLY valid JSON matching this schema:
@@ -52,7 +57,12 @@ async def _invoke_structured_with_recovery(
             raw = raw.replace('```','').replace('json','')
             out = schema_model.model_validate_json(raw)
             return out, {"recovered": "fix_prompt"}
-        except ValidationError:
+        except ValidationError as validation_exc:
+            logger.warning(
+                "Recovery validation failed for schema %s; attempting JSON-only fallback.",
+                schema_model.__name__,
+                exc_info=validation_exc,
+            )
             if fallback_prompt is None:
                 fallback_prompt = f"""
 Return ONLY valid JSON matching this schema:

@@ -26,8 +26,8 @@ async def intro_agent_node(state: AgentState):
     # Ensure system prompt is first
     if not messages or not isinstance(messages[0], SystemMessage):
         messages = [SystemMessage(content=INTRODUCTION_PROMPT)] + messages
-    ##TODO check each llm need reason or not
-    llm = LLMFactory.get_model(temperature=0.5, tools=[set_symbol])
+    
+    llm = LLMFactory.get_model(temperature=0.5, tools=[set_symbol], thinking=False)
     
     logger.info("🤖 Agent thinking...")
     response = await llm.ainvoke(messages)

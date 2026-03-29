@@ -126,12 +126,16 @@ class StockAnalysisPipeline:
                 for key, result in zip(keys, results):
                     if isinstance(result, Exception):
                         logger.error(f"⚠️ Error fetching {key}: {result}")
-                        self.rahavard_data[key] = None
+                        self.rahavard_data[key] = {} if key != "history" else []
                     else:
-                        self.rahavard_data[key] = result
+                        if result is None:
+                            self.rahavard_data[key] = {} if key != "history" else []
+                        else:
+                            self.rahavard_data[key] = result
 
                 # Post-processing returns
                 if self.rahavard_data.get('history'):
+                    self.rahavard_data['details'] = self.rahavard_data.get('details') or {}
                     self.rahavard_data['details']['returns'] = {}
                     periods = {'return_7_d': 6, 'return_1_m': 30, 'return_3_m': 90}
                     for name, days in periods.items():

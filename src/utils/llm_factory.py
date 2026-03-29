@@ -7,8 +7,9 @@ class LLMFactory:
     @staticmethod
     def get_model(temperature: float = 0.0, thinking:bool = True,
                 top_p:Optional[float] = None, max_output_tokens:Optional[int] = None,
-                structured_output=None,tools:list=[]):
+                structured_output=None, tools: Optional[list] = None):
 
+        tools = tools or []
 
         llm = ChatNVIDIA(
             model=settings.model_name,

@@ -16,7 +16,7 @@ class BalanceSheetAgent(BaseFundamentalAgent):
             "cash_ratio": "نسبت نقدینگی",
             "debt_to_equity": "نسبت بدهی به ارزش ویژه",
             "dividends": "سود سهام مصوب سال جاری",
-            "net_income": "سود (زیان ویژه پس از کسر مالیات"
+            "net_income": "سود (زیان) ویژه پس از کسر مالیات"
         }
 
         # 1. Fill Raw Metrics

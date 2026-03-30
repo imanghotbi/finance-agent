@@ -83,18 +83,53 @@ async def save_llm_usage(node_name: str, session_id: Optional[str], response: An
         mongo.close()
 
 
+def build_analysis_timing(state: Dict[str, Any]) -> Dict[str, Any]:
+    completed_at = datetime.utcnow()
+    started_at_raw = state.get("analysis_started_at")
+    started_at = None
+    if started_at_raw:
+        try:
+            started_at = datetime.fromisoformat(started_at_raw)
+        except ValueError:
+            started_at = None
+
+    elapsed_seconds = round((completed_at - started_at).total_seconds(), 2) if started_at else None
+    if elapsed_seconds is None:
+        elapsed_display = None
+    elif elapsed_seconds < 60:
+        elapsed_display = f"{elapsed_seconds:.2f} ثانیه"
+    else:
+        minutes = int(elapsed_seconds // 60)
+        seconds = elapsed_seconds % 60
+        elapsed_display = f"{minutes} دقیقه و {seconds:.2f} ثانیه"
+
+    return {
+        "analysis_completed_at": completed_at.isoformat(),
+        "time_consumption_seconds": elapsed_seconds,
+        "time_consumption_display": elapsed_display,
+    }
+
+
 async def save_agent_run(session_id: Optional[str], state: Dict[str, Any], final_report: str) -> None:
     if not session_id:
         logger.warning("Skipping final agent state persistence because session_id is missing.")
         return
+
+    timing_data = build_analysis_timing(state)
+
+    final_state = {
+        **state,
+        "final_report": final_report,
+        **timing_data,
+    }
 
     document = {
         "_id": session_id,
         "session_id": session_id,
         "symbol": state.get("symbol"),
         "final_report": final_report,
-        "final_state": _make_mongo_safe({**state, "final_report": final_report}),
-        "updated_at": datetime.utcnow(),
+        "final_state": _make_mongo_safe(final_state),
+        "updated_at": datetime.fromisoformat(timing_data["analysis_completed_at"]),
     }
     mongo = MongoManager(settings.mongo_agent_run_collection_name)
     try:
@@ -119,18 +154,7 @@ async def _invoke_structured_with_recovery(
     session_id: Optional[str] = None,
 ) -> Tuple[BaseModel, Optional[Dict[str, str]]]:
     try:
-        structured_response = await llm.with_structured_output(
-            schema_model,
-            include_raw=True,
-        ).ainvoke(prompt_value)
-        if isinstance(structured_response, dict):
-            raw_response = structured_response.get("raw")
-            parsed_output = structured_response.get("parsed")
-        else:
-            raw_response = None
-            parsed_output = structured_response
-        if raw_response and node_name:
-            await save_llm_usage(node_name=node_name, session_id=session_id, response=raw_response)
+        parsed_output = await llm.with_structured_output(schema_model).ainvoke(prompt_value)
         if not parsed_output:
             raise
         return parsed_output, None

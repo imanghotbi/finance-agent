@@ -3,7 +3,7 @@ from langchain_core.runnables import RunnableLambda, RunnableConfig
 from src.utils.llm_factory import LLMFactory
 from src.workflow.state import AgentState
 from src.core.prompt import REPORTER_AGENT
-from src.utils.helper import create_prompt, get_session_id, invoke_llm_and_log, save_agent_run
+from src.utils.helper import create_prompt, get_session_id, invoke_llm_and_log, save_agent_run, build_analysis_timing
 from src.core.logger import logger
 
 llm = LLMFactory.get_model(node_name="reporter")
@@ -61,5 +61,9 @@ async def reporter_node(state: AgentState, config: RunnableConfig):
     )
     
     logger.info("✅ Reporter Node Completed. Final report generated.")
+    timing_data = build_analysis_timing(state)
     await save_agent_run(session_id=session_id, state=state, final_report=response_msg.content)
-    return {"final_report": response_msg.content}
+    return {
+        "final_report": response_msg.content,
+        **timing_data,
+    }

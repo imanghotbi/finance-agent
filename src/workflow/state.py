@@ -68,6 +68,10 @@ class AgentState(TypedDict):
     
     symbol: Annotated[str, update_latest]
     short_name: str
+    analysis_started_at: str
+    analysis_completed_at: str
+    time_consumption_seconds: float
+    time_consumption_display: str
     messages: list[Any]
     price_history: list[Dict[str, Any]]
     

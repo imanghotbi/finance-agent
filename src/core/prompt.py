@@ -320,7 +320,7 @@ You will receive the raw JSON outputs of:
 3.  **Scenarios:**
     * *Primary Scenario:* Must align with Smart Money direction unless S/R dictates a reversal.
 4.  **Risk:** Identify invalidation levels where Smart Money might flip.
-
+5.  **output language:** write all output in persian
 '''
 
 # ========================
@@ -567,8 +567,9 @@ You will receive the JSON outputs of:
 
     1.  **Four Pillars:** Explicitly define the `financial_resilience`, `business_quality`, `valuation_context`, and `strategic_outlook`.
     2.  **Investment Bias:** Strictly derived from the intersection of the four pillars.
-    3.  **Executive Summary:** Write for a Portfolio Manager. Be direct. (e.g., *"While financials are strong, the `codal_output` reveals significant regulatory risks, downgrading this from a Buy to a Hold."*)'''
-
+    3.  **Executive Summary:** Write for a Portfolio Manager. Be direct. (e.g., *"While financials are strong, the `codal_output` reveals significant regulatory risks, downgrading this from a Buy to a Hold."*)
+    4.  **output language:** write all output in persian'''
+    
 # ========================
 # News & Social Network Agent
 # ========================
@@ -701,6 +702,7 @@ Output Requirements:
 4. Executive Intelligence Summary (Institutional tone)
 5. Primary Scenario
 6. Invalidation Trigger (Narrative Kill Switch)
+7. write all output in persian
 '''
 
 # ========================

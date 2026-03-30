@@ -14,7 +14,7 @@ from src.schema.social_news import NewsSocialFusionOutput
 from src.utils.helper import ensure_object
 
 from langgraph.types import Command
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 import uuid
 import asyncio 
 
@@ -28,7 +28,7 @@ async def start():
         "technical": False, "fundamental": False, "social": False
     })
 
-    inputs = {"messages": [], "symbol": ""}
+    inputs = {"messages": [HumanMessage(content="خودت رو معرفی کن")], "symbol": ""}
     await run_graph(inputs)
 
 @cl.on_message
@@ -50,7 +50,7 @@ async def on_message(message: cl.Message):
         })
         cl.user_session.set("is_interrupted", False)
         
-        inputs = {"messages": [], "symbol": ""}
+        inputs = {"messages": [HumanMessage(content="خودت رو معرفی کن")], "symbol": ""}
         await run_graph(inputs)
 
 async def run_graph(inputs):
@@ -92,7 +92,7 @@ async def run_graph(inputs):
             if node_name == "data_preparation":
                 if not research_step:
                     await cl.Message(content="🔄 آغاز بررسی جامع نماد بورسی ...").send()
-                    research_step = cl.Step(name="Market Research (0%)", type="process" , parent_id=cl.context.current_step.id)
+                    research_step = cl.Step(name="کاوش عمیق نماد بورسی (0%)", type="process" , parent_id=cl.context.current_step.id)
                     await research_step.send()
                 price_history_payload = node_output.get("price_history", [])
                 chart_symbol = node_output.get("symbol")
@@ -114,7 +114,7 @@ async def run_graph(inputs):
                 percent = min(int((completed_steps / TOTAL_STEPS) * 100), 95)
                 
                 if research_step:
-                    research_step.name = f"Market Research ({percent}%)"
+                    research_step.name = f"کاوش عمیق نماد بورسی ({percent}%)"
                     await research_step.update()
 
             # --- 4. Sub-Graph Reports ---
@@ -127,7 +127,7 @@ async def run_graph(inputs):
 
                 if raw_data and not reports_shown["technical"] and research_step:
                     reports_shown["technical"] = True
-                    async with cl.Step(name="Technical Analysis", type="run", parent_id=research_step.id) as step:
+                    async with cl.Step(name="تحلیل تکنیکال", type="run", parent_id=research_step.id) as step:
                         report_obj = ensure_object(raw_data, TechnicalConsensus)
                         step.output = render_technical_report(report_obj) if report_obj else "Error parsing data"
 
@@ -139,7 +139,7 @@ async def run_graph(inputs):
 
                 if raw_data and not reports_shown["fundamental"] and research_step:
                     reports_shown["fundamental"] = True
-                    async with cl.Step(name="Fundamental Analysis", type="run", parent_id=research_step.id) as step:
+                    async with cl.Step(name="تحلیل بنیادی", type="run", parent_id=research_step.id) as step:
                         report_obj = ensure_object(raw_data, FundamentalAnalysisOutput)
                         step.output = render_fundamental_report(report_obj) if report_obj else "Error parsing data"
 
@@ -151,7 +151,7 @@ async def run_graph(inputs):
 
                 if raw_data and not reports_shown["social"] and research_step:
                     reports_shown["social"] = True
-                    async with cl.Step(name="Social & News Analysis", type="run", parent_id=research_step.id) as step:
+                    async with cl.Step(name="تحلیل اخبار و شبکه اجتماعی", type="run", parent_id=research_step.id) as step:
                         report_obj = ensure_object(raw_data, NewsSocialFusionOutput)
                         step.output = render_social_report(report_obj) if report_obj else "Error parsing data"
 

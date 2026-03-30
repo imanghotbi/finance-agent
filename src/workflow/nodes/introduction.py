@@ -1,4 +1,5 @@
 from typing import Literal
+from datetime import datetime
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
@@ -24,6 +25,16 @@ async def intro_agent_node(state: AgentState, config: RunnableConfig):
     The main agent node. It generates a response or calls a tool.
     """
     messages = state.get("messages", [])
+
+    if not any(isinstance(message, HumanMessage) for message in messages):
+        logger.info("🤖 Intro agent sending initial prompt without LLM call.")
+        return {
+            "messages": [
+                AIMessage(
+                    content="سلام، من دستیار تحلیل بازار هستم. لطفاً نماد بورسی موردنظرتان را ارسال کنید تا تحلیل را شروع کنم."
+                )
+            ]
+        }
     
     # Ensure system prompt is first
     if not messages or not isinstance(messages[0], SystemMessage):
@@ -79,7 +90,10 @@ def tool_node(state: AgentState):
     
     logger.info(f"🛠️ Tool executed. Symbol set to: {symbol}")
 
-    return {"symbol": symbol}
+    return {
+        "symbol": symbol,
+        "analysis_started_at": datetime.utcnow().isoformat(),
+    }
 
 # 4. Conditional Logic
 def should_continue(state: AgentState) -> Literal["tool_node", "input_node"]:

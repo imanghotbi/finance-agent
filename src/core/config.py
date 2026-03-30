@@ -43,8 +43,8 @@ class Settings(BaseSettings):
     tavily_api_key:SecretStr
 
     #model config
-    ## TODO change this to selectable model not static config name
     model_name:str = 'qwen/qwen3-235b-a22b'
+    model_name_overrides: Dict[str, str] = {}
     model_api_key:SecretStr
     max_tokens:Optional[int] = 16255
     top_p:float = 0.0

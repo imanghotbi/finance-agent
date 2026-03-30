@@ -33,7 +33,7 @@ from src.services.fundamental.earnings_cash import EarningsQualityAgent
 from src.services.fundamental.valuation_market import ValuationAgent
 from src.core.logger import logger
 
-llm = LLMFactory.get_model()
+llm = LLMFactory.get_model(node_name="fundamental")
 
 async def balance_sheet_node(state: FundamentalState, config: RunnableConfig):
     logger.info("📊 Starting Balance Sheet Analysis Node...")

@@ -26,7 +26,7 @@ from src.utils.helper import create_prompt, _invoke_structured_with_recovery, ge
 from src.core.logger import logger
 
 
-llm = LLMFactory.get_model()
+llm = LLMFactory.get_model(node_name="technical")
 
 async def trend_agent_node(state: TechnicalState, config: RunnableConfig):
     logger.info("📈 Starting Trend Analysis Node...")

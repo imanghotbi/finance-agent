@@ -6,7 +6,7 @@ from src.core.prompt import REPORTER_AGENT
 from src.utils.helper import create_prompt, get_session_id, invoke_llm_and_log, save_agent_run
 from src.core.logger import logger
 
-llm = LLMFactory.get_model()
+llm = LLMFactory.get_model(node_name="reporter")
 
 async def reporter_node(state: AgentState, config: RunnableConfig):
     logger.info("📝 Starting Reporter Node...")

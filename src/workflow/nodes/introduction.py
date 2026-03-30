@@ -29,7 +29,12 @@ async def intro_agent_node(state: AgentState, config: RunnableConfig):
     if not messages or not isinstance(messages[0], SystemMessage):
         messages = [SystemMessage(content=INTRODUCTION_PROMPT)] + messages
     
-    llm = LLMFactory.get_model(temperature=0.5, tools=[set_symbol], thinking=False)
+    llm = LLMFactory.get_model(
+        temperature=0.5,
+        tools=[set_symbol],
+        thinking=False,
+        node_name="introduction",
+    )
     
     logger.info("🤖 Agent thinking...")
     response = await invoke_llm_and_log(

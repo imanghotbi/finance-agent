@@ -18,7 +18,7 @@ from src.core.prompt import (
 from src.utils.helper import create_prompt, _invoke_structured_with_recovery , parse_iso_date, get_session_id
 from src.core.logger import logger
 
-llm = LLMFactory.get_model()
+llm = LLMFactory.get_model(node_name="social_news")
 
 async def twitter_agent_node(state: NewsSocialState, config: RunnableConfig):
     logger.info("🐦 Starting Twitter Analysis Node...")

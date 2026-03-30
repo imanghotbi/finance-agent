@@ -5,14 +5,24 @@ from typing import Optional
 
 class LLMFactory:
     @staticmethod
+    def resolve_model_name(node_name: Optional[str] = None, model_name: Optional[str] = None) -> str:
+        if model_name:
+            return model_name
+        if node_name:
+            return settings.model_name_overrides.get(node_name, settings.model_name)
+        return settings.model_name
+
+    @staticmethod
     def get_model(temperature: float = 0.0, thinking:bool = True,
                 top_p:Optional[float] = None, max_output_tokens:Optional[int] = None,
-                structured_output=None, tools: Optional[list] = None):
+                structured_output=None, tools: Optional[list] = None,
+                node_name: Optional[str] = None, model_name: Optional[str] = None):
 
         tools = tools or []
+        resolved_model_name = LLMFactory.resolve_model_name(node_name=node_name, model_name=model_name)
 
         llm = ChatNVIDIA(
-            model=settings.model_name,
+            model=resolved_model_name,
             api_key=settings.model_api_key.get_secret_value(),
             temperature=temperature,
             max_tokens=max_output_tokens or settings.max_tokens,

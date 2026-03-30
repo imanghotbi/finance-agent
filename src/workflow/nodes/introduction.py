@@ -1,11 +1,13 @@
 from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langgraph.types import interrupt, Command
 from langgraph.graph import END
 
 from src.workflow.state import AgentState
 from src.utils.llm_factory import LLMFactory
+from src.utils.helper import get_session_id, invoke_llm_and_log
 from src.core.logger import logger
 from src.core.prompt import INTRODUCTION_PROMPT
 
@@ -17,7 +19,7 @@ def set_symbol(symbol: str):
     return symbol
 
 
-async def intro_agent_node(state: AgentState):
+async def intro_agent_node(state: AgentState, config: RunnableConfig):
     """
     The main agent node. It generates a response or calls a tool.
     """
@@ -30,7 +32,12 @@ async def intro_agent_node(state: AgentState):
     llm = LLMFactory.get_model(temperature=0.5, tools=[set_symbol], thinking=False)
     
     logger.info("🤖 Agent thinking...")
-    response = await llm.ainvoke(messages)
+    response = await invoke_llm_and_log(
+        llm,
+        messages,
+        node_name="intro_agent",
+        session_id=get_session_id(config),
+    )
     
     return {"messages": [response]}
 

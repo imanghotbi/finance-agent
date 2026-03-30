@@ -1,14 +1,14 @@
 import json
-from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import RunnableLambda, RunnableConfig
 from src.utils.llm_factory import LLMFactory
 from src.workflow.state import AgentState
 from src.core.prompt import REPORTER_AGENT
-from src.utils.helper import create_prompt
+from src.utils.helper import create_prompt, get_session_id, invoke_llm_and_log, save_agent_run
 from src.core.logger import logger
 
 llm = LLMFactory.get_model()
 
-async def reporter_node(state: AgentState):
+async def reporter_node(state: AgentState, config: RunnableConfig):
     logger.info("📝 Starting Reporter Node...")
     
     # GATEKEEPER CHECK: Ensure all three consensus reports are present.
@@ -52,8 +52,14 @@ async def reporter_node(state: AgentState):
     prompt_value = (to_prompt_vars | prompt).invoke(state)
     
     # Simple invoke for text output
-    response_msg = await llm.ainvoke(prompt_value)
+    session_id = get_session_id(config)
+    response_msg = await invoke_llm_and_log(
+        llm,
+        prompt_value,
+        node_name="reporter_agent",
+        session_id=session_id,
+    )
     
     logger.info("✅ Reporter Node Completed. Final report generated.")
-    ## TODO save this final state and save usage
+    await save_agent_run(session_id=session_id, state=state, final_report=response_msg.content)
     return {"final_report": response_msg.content}

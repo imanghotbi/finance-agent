@@ -1,15 +1,19 @@
 from typing import Any, Dict, Optional, Tuple, Type
 from datetime import datetime , timedelta
+import json
 import ssl
 import aiohttp
 from bs4 import BeautifulSoup
 import jdatetime
 from tenacity import retry, stop_after_attempt, wait_fixed
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, ValidationError
 
 try:
     from src.core.logger import logger
+    from src.core.config import settings
+    from src.core.mongo_manger import MongoManager
 except ImportError:
     import logging
     logger = logging.getLogger(__name__)
@@ -24,18 +28,112 @@ def _prompt_to_text(prompt_value: Any) -> str:
         return prompt_value.to_string()
     return str(prompt_value)
 
-## TODO add retry with tencty
+
+def get_session_id(config: Optional[RunnableConfig]) -> Optional[str]:
+    if not config:
+        return None
+    configurable = config.get("configurable", {})
+    return configurable.get("session_id") or configurable.get("thread_id")
+
+
+def _extract_token_usage(response: Any) -> Dict[str, Any]:
+    response_metadata = getattr(response, "response_metadata", {}) or {}
+    token_usage = response_metadata.get("token_usage")
+    if isinstance(token_usage, dict):
+        return token_usage
+
+    usage_metadata = getattr(response, "usage_metadata", None)
+    if isinstance(usage_metadata, dict):
+        return usage_metadata
+
+    return {}
+
+
+def _make_mongo_safe(value: Any) -> Any:
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="json")
+    if isinstance(value, dict):
+        return {key: _make_mongo_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_make_mongo_safe(item) for item in value]
+    if isinstance(value, tuple):
+        return [_make_mongo_safe(item) for item in value]
+    try:
+        json.dumps(value)
+        return value
+    except TypeError:
+        return str(value)
+
+
+async def save_llm_usage(node_name: str, session_id: Optional[str], response: Any) -> None:
+    response_metadata = getattr(response, "response_metadata", {}) or {}
+    document = {
+        "node_name": node_name,
+        "session_id": session_id,
+        "model_name": response_metadata.get("model_name"),
+        **_extract_token_usage(response),
+        "created_at": datetime.utcnow(),
+    }
+    mongo = MongoManager(settings.mongo_llm_usage_collection_name)
+    try:
+        await mongo.write_data(_make_mongo_safe(document))
+    except Exception as exc:
+        logger.warning("Failed to persist LLM usage for node %s.", node_name, exc_info=exc)
+    finally:
+        mongo.close()
+
+
+async def save_agent_run(session_id: Optional[str], state: Dict[str, Any], final_report: str) -> None:
+    if not session_id:
+        logger.warning("Skipping final agent state persistence because session_id is missing.")
+        return
+
+    document = {
+        "_id": session_id,
+        "session_id": session_id,
+        "symbol": state.get("symbol"),
+        "final_report": final_report,
+        "final_state": _make_mongo_safe({**state, "final_report": final_report}),
+        "updated_at": datetime.utcnow(),
+    }
+    mongo = MongoManager(settings.mongo_agent_run_collection_name)
+    try:
+        await mongo.upsert_data(document)
+    except Exception as exc:
+        logger.warning("Failed to persist final agent run for session %s.", session_id, exc_info=exc)
+    finally:
+        mongo.close()
+
+
+async def invoke_llm_and_log(llm: Any, prompt_value: Any, node_name: str, session_id: Optional[str]):
+    response = await llm.ainvoke(prompt_value)
+    await save_llm_usage(node_name=node_name, session_id=session_id, response=response)
+    return response
+
 async def _invoke_structured_with_recovery(
     llm: Any,
     prompt_value: Any,
     schema_model: Type[BaseModel],
     fallback_prompt: Optional[str] = None,
+    node_name: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> Tuple[BaseModel, Optional[Dict[str, str]]]:
     try:
-        out = await llm.with_structured_output(schema_model).ainvoke(prompt_value)
-        if not out:
+        structured_response = await llm.with_structured_output(
+            schema_model,
+            include_raw=True,
+        ).ainvoke(prompt_value)
+        if isinstance(structured_response, dict):
+            raw_response = structured_response.get("raw")
+            parsed_output = structured_response.get("parsed")
+        else:
+            raw_response = None
+            parsed_output = structured_response
+        if raw_response and node_name:
+            await save_llm_usage(node_name=node_name, session_id=session_id, response=raw_response)
+        if not parsed_output:
             raise
-        return out, None
+        return parsed_output, None
     except Exception as exc:
         logger.warning(
             "Structured output invocation failed for schema %s; attempting recovery.",
@@ -51,7 +149,12 @@ async def _invoke_structured_with_recovery(
         Original prompt:
         {prompt_text}
         """
-        raw_msg = await llm.ainvoke(fix_prompt)
+        raw_msg = await invoke_llm_and_log(
+            llm,
+            fix_prompt,
+            node_name or schema_model.__name__,
+            session_id,
+        )
         raw = raw_msg.content if hasattr(raw_msg, "content") else str(raw_msg)
         try:
             raw = raw.replace('```','').replace('json','')
@@ -69,7 +172,12 @@ Return ONLY valid JSON matching this schema:
 {schema_model.model_json_schema()}
 No extra text. Use null when unknown.
 """
-            raw2_msg = await llm.ainvoke(fallback_prompt + "\n\n" + prompt_text)
+            raw2_msg = await invoke_llm_and_log(
+                llm,
+                fallback_prompt + "\n\n" + prompt_text,
+                node_name or schema_model.__name__,
+                session_id,
+            )
             raw2 = raw2_msg.content if hasattr(raw2_msg, "content") else str(raw2_msg)
             raw2 = raw2.replace('```','').replace('json','')
             out = schema_model.model_validate_json(raw2)

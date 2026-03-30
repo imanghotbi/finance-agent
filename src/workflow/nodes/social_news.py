@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
-from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import RunnableLambda, RunnableConfig
 from src.utils.llm_factory import LLMFactory
 from src.workflow.state import NewsSocialState
 from src.schema.social_news import (
@@ -15,12 +15,12 @@ from src.core.prompt import (
     NEWS_PROMPT,
     SOCIAL_NEWS_AGENT_PROMPT,
 )
-from src.utils.helper import create_prompt, _invoke_structured_with_recovery , parse_iso_date
+from src.utils.helper import create_prompt, _invoke_structured_with_recovery , parse_iso_date, get_session_id
 from src.core.logger import logger
 
 llm = LLMFactory.get_model()
 
-async def twitter_agent_node(state: NewsSocialState):
+async def twitter_agent_node(state: NewsSocialState, config: RunnableConfig):
     logger.info("🐦 Starting Twitter Analysis Node...")
     data = state["news_social_data"].get("rapid_tweet", [])
     symbol = state["news_social_data"].get("symbol", "")
@@ -61,12 +61,14 @@ async def twitter_agent_node(state: NewsSocialState):
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(input_data)
-    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, SocialSentimentOutput)
+    result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_value, SocialSentimentOutput, node_name="twitter_agent", session_id=get_session_id(config)
+    )
     
     logger.info("✅ Twitter Analysis Completed.")
     return {"twitter_report": result}
 
-async def sahamyab_agent_node(state: NewsSocialState):
+async def sahamyab_agent_node(state: NewsSocialState, config: RunnableConfig):
     logger.info("💬 Starting Sahamyab Analysis Node...")
     data = state["news_social_data"].get("latest_sahamyab_tweet", [])
     symbol = state["news_social_data"].get("symbol", "")
@@ -111,12 +113,14 @@ async def sahamyab_agent_node(state: NewsSocialState):
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(input_data)
-    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, RetailPulseAnalysis)
+    result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_value, RetailPulseAnalysis, node_name="sahamyab_agent", session_id=get_session_id(config)
+    )
     
     logger.info("✅ Sahamyab Analysis Completed.")
     return {"sahamyab_report": result}
 
-async def news_agent_node(state: NewsSocialState):
+async def news_agent_node(state: NewsSocialState, config: RunnableConfig):
     logger.info("📰 Starting News Analysis Node...")
     data = state["news_social_data"].get("news", [])
     symbol = state["news_social_data"].get("symbol", "")
@@ -185,12 +189,14 @@ async def news_agent_node(state: NewsSocialState):
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(input_data)
-    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, FundamentalNewsAnalysis)
+    result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_value, FundamentalNewsAnalysis, node_name="news_agent", session_id=get_session_id(config)
+    )
     
     logger.info("✅ News Analysis Completed.")
     return {"news_report": result}
 
-async def social_news_consensus_node(state: NewsSocialState):
+async def social_news_consensus_node(state: NewsSocialState, config: RunnableConfig):
     logger.info("📣 Starting Social & News Consensus Node...")
     # Gatekeeper Check
     required_keys = ["twitter_report", "sahamyab_report", "news_report"]
@@ -227,7 +233,9 @@ async def social_news_consensus_node(state: NewsSocialState):
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(input_data)
-    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, NewsSocialFusionOutput)
+    result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_value, NewsSocialFusionOutput, node_name="social_news_consensus", session_id=get_session_id(config)
+    )
     
     logger.info("✅ Social & News Consensus Completed.")
     return {"social_news_consensus_report": result}

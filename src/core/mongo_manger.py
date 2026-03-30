@@ -8,11 +8,11 @@ class MongoManager:
     A Singleton-like or Instance-based wrapper for MongoDB operations.
     Handles connection, writing (insert), and reading (find).
     """
-    def __init__(self):
+    def __init__(self, collection_name: str | None = None):
         try:
             self.client = AsyncIOMotorClient(settings.mongo_uri)
             self.db = self.client[settings.mongo_db_name]
-            self.collection = self.db[settings.mongo_collection_name]
+            self.collection = self.db[collection_name or settings.mongo_collection_name]
             logger.info("✅ MongoDB Client Initialized")
         except Exception as e:
             logger.critical(f"❌ Failed to initialize MongoDB Client: {e}", exc_info=True)
@@ -98,4 +98,3 @@ class MongoManager:
     def close(self):
         self.client.close()
         logger.info("🔒 MongoDB Connection Closed")
-

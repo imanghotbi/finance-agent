@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
-from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import RunnableLambda, RunnableConfig
 from langchain_core.messages import HumanMessage
 
 from src.utils.llm_factory import LLMFactory
@@ -25,7 +25,8 @@ from src.utils.helper import (
     create_prompt, 
     _invoke_structured_with_recovery, 
     scrape_codal_report, 
-    parse_persian_date
+    parse_persian_date,
+    get_session_id,
 )
 from src.services.fundamental.balance_sheet import BalanceSheetAgent
 from src.services.fundamental.earnings_cash import EarningsQualityAgent
@@ -34,7 +35,7 @@ from src.core.logger import logger
 
 llm = LLMFactory.get_model()
 
-async def balance_sheet_node(state: FundamentalState):
+async def balance_sheet_node(state: FundamentalState, config: RunnableConfig):
     logger.info("📊 Starting Balance Sheet Analysis Node...")
     agent = BalanceSheetAgent(state["fundamental_data"])
     data = agent.process()
@@ -51,7 +52,9 @@ async def balance_sheet_node(state: FundamentalState):
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(data)
-    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, BalanceSheetOutput)
+    result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_value, BalanceSheetOutput, node_name="balance_sheet_agent", session_id=get_session_id(config)
+    )
     
     response = {"balance_sheet_report": result}
     if meta:
@@ -60,7 +63,7 @@ async def balance_sheet_node(state: FundamentalState):
     logger.info("✅ Balance Sheet Analysis Completed.")
     return response
 
-async def earnings_quality_node(state: FundamentalState):
+async def earnings_quality_node(state: FundamentalState, config: RunnableConfig):
     logger.info("💰 Starting Earnings Quality Analysis Node...")
     agent = EarningsQualityAgent(state["fundamental_data"])
     data = agent.process()
@@ -77,7 +80,9 @@ async def earnings_quality_node(state: FundamentalState):
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(data)
-    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, EarningsQualityOutput)
+    result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_value, EarningsQualityOutput, node_name="earnings_quality_agent", session_id=get_session_id(config)
+    )
     
     response = {"earnings_quality_report": result}
     if meta:
@@ -86,7 +91,7 @@ async def earnings_quality_node(state: FundamentalState):
     logger.info("✅ Earnings Quality Analysis Completed.")
     return response
 
-async def valuation_node(state: FundamentalState):
+async def valuation_node(state: FundamentalState, config: RunnableConfig):
     logger.info("🏷️ Starting Valuation Analysis Node...")
     agent = ValuationAgent(state["fundamental_data"])
     data = agent.process()
@@ -103,7 +108,9 @@ async def valuation_node(state: FundamentalState):
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(data)
-    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, ValuationOutput)
+    result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_value, ValuationOutput, node_name="valuation_agent", session_id=get_session_id(config)
+    )
     
     response = {"valuation_report": result}
     if meta:
@@ -112,7 +119,7 @@ async def valuation_node(state: FundamentalState):
     logger.info("✅ Valuation Analysis Completed.")
     return response
 
-async def codal_agent_node(state: FundamentalState):
+async def codal_agent_node(state: FundamentalState, config: RunnableConfig):
     logger.info("📜 Starting Codal Report Analysis Node...")
     data = state["fundamental_data"].get("codal", [])
     symbol = state.get("symbol", "")
@@ -154,7 +161,9 @@ async def codal_agent_node(state: FundamentalState):
     codal_list_prompt = CODAL_LIST_PROMPT.format(symbol=symbol, data='\n'.join(json.dumps(d,ensure_ascii=False) for d in clean_filtered_reports))
     prompt_value_select = [HumanMessage(content=codal_list_prompt)]
 
-    selection_result, _ = await _invoke_structured_with_recovery(llm, prompt_value_select, CodalReportSelection)
+    selection_result, _ = await _invoke_structured_with_recovery(
+        llm, prompt_value_select, CodalReportSelection, node_name="codal_agent", session_id=get_session_id(config)
+    )
     
     final_codal_list = [x for x in clean_filtered_reports if x['id'] in selection_result.selected_ids]
     logger.info(f"📌 Selected {len(final_codal_list)} reports for detailed analysis.")
@@ -180,7 +189,9 @@ async def codal_agent_node(state: FundamentalState):
     codal_content_prompt = CODAL_CONTENT_PROMPT.format(symbol = symbol, data=combined_content)
     prompt_analyze = [HumanMessage(content=codal_content_prompt)]
 
-    analysis_result, meta = await _invoke_structured_with_recovery(llm, prompt_analyze, CodalAnalysisOutput)
+    analysis_result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_analyze, CodalAnalysisOutput, node_name="codal_agent", session_id=get_session_id(config)
+    )
     
     response = {"codal_report": analysis_result}
     if meta:
@@ -189,7 +200,7 @@ async def codal_agent_node(state: FundamentalState):
     logger.info("✅ Codal Analysis Completed.")
     return response
 
-async def fundamental_consensus_node(state: FundamentalState):
+async def fundamental_consensus_node(state: FundamentalState, config: RunnableConfig):
     logger.info("🤝 Starting Fundamental Consensus Node...")
     # GATEKEEPER CHECK
     required_keys = ["balance_sheet_report", "earnings_quality_report", "valuation_report","codal_report"]
@@ -226,7 +237,9 @@ async def fundamental_consensus_node(state: FundamentalState):
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(state)
-    result, meta = await _invoke_structured_with_recovery(llm, prompt_value, FundamentalAnalysisOutput)
+    result, meta = await _invoke_structured_with_recovery(
+        llm, prompt_value, FundamentalAnalysisOutput, node_name="fundamental_consensus", session_id=get_session_id(config)
+    )
     
     response = {"fundamental_consensus_report": result}
     if meta:

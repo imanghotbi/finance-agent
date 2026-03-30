@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     mongo_username: Optional[str] = None
     mongo_password: Optional[SecretStr] = None
     mongo_collection_name: str = 'market_analysis'
+    mongo_llm_usage_collection_name: str = 'llm_usage'
+    mongo_agent_run_collection_name: str = 'agent_runs'
 
     #log info
     log_level:str = "INFO"

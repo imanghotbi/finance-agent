@@ -32,11 +32,10 @@ class TavilyClient:
     """
     Async client for the Tavily Search API (AI Search).
     """
-    def __init__(self, api_key: str, base_url:str ,proxy_url:str = None ,timeout: int = 60):
+    def __init__(self, api_key: str, base_url:str ,timeout: int = 60):
         self.api_key = api_key
         self.timeout = ClientTimeout(total=timeout)
         self.session: Optional[ClientSession] = None
-        self.proxy_url = proxy_url
         self.base_url = base_url
 
     async def __aenter__(self):
@@ -91,7 +90,7 @@ class TavilyClient:
             debug_payload['query'] = debug_payload['query'][:50] + "..."
         logger.debug(f"Sending Tavily Request: {debug_payload}")
         try:
-            async with self.session.post(endpoint, json=payload,proxy=self.proxy_url, timeout=self.timeout, ssl=False) as response:
+            async with self.session.post(endpoint, json=payload, timeout=self.timeout, ssl=False) as response:
                 if response.status != 200:
                     error_msg = f"Tavily API Error {response.status}: {response.reason}"
                     try:
@@ -109,8 +108,7 @@ class TavilyClient:
                     raise TavilyError(f"Invalid JSON received from Tavily: {text[:100]}...")
                 
         except aiohttp.ClientConnectorError as e:
-             # Specific handling for proxy connection issues
-            logger.error(f"Connection failed (check proxy settings at {self.proxy_url}): {e}")
+            logger.error(f"Connection failed while calling Tavily: {e}")
             raise
 
     async def search(

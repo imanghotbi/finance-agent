@@ -231,7 +231,7 @@ async def scrape_codal_report(url: str) -> str:
     ssl_context.verify_mode = ssl.CERT_NONE
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, ssl=ssl_context, timeout=30) as response:
+        async with session.get(url, ssl=ssl_context, timeout=30, proxy=settings.proxy_url) as response:
             response.raise_for_status()
             content = await response.read()
             

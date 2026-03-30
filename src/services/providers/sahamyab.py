@@ -29,10 +29,11 @@ class SahamyabClient:
     """
     Async client for interacting with the Sahamyab API.
     """
-    def __init__(self, base_url:str = settings.sahamyab_base_url ,timeout: int = 30):
+    def __init__(self, base_url:str = settings.sahamyab_base_url ,timeout: int = 30, proxy_url: Optional[str] = settings.proxy_url):
         self.timeout = ClientTimeout(total=timeout)
         self.session: Optional[ClientSession] = None
         self.base_url = base_url
+        self.proxy_url = proxy_url
 
     async def __aenter__(self):
         connector = TCPConnector(limit=100)
@@ -64,7 +65,15 @@ class SahamyabClient:
 
         logger.debug(f"Requesting: {method} {self.base_url}/{endpoint} | Params: {params}")
 
-        async with self.session.request(method, endpoint, params=params, json=json_data, timeout=self.timeout, ssl=False) as response:
+        async with self.session.request(
+            method,
+            endpoint,
+            params=params,
+            json=json_data,
+            timeout=self.timeout,
+            ssl=False,
+            proxy=self.proxy_url,
+        ) as response:
             if response.status != 200:
                 error_msg = f"API Error {response.status}: {response.reason} for URL: {endpoint}"
                 raise SahamyabError(error_msg)

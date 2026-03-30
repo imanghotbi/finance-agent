@@ -37,14 +37,12 @@ class TwitterRapidClient:
         base_url: str,
         api_key: str = settings.rapid_api_key.get_secret_value(), 
         api_host: str = settings.rapid_api_host,
-        proxy_url: Optional[str] = settings.proxy_url,
         timeout: int = 30
     ):
         self.headers = {
             "x-rapidapi-key": api_key,
             "x-rapidapi-host": api_host
         }
-        self.proxy_url = proxy_url
         self.timeout = ClientTimeout(total=timeout)
         self.session: Optional[ClientSession] = None
         self.base_url = base_url
@@ -89,7 +87,7 @@ class TwitterRapidClient:
 
         try:
             # aiohttp handles proxies via the 'proxy' parameter on individual requests
-            async with self.session.get(url=endpoint ,params=params, proxy=self.proxy_url, timeout=self.timeout, ssl=False) as response:
+            async with self.session.get(url=endpoint ,params=params, timeout=self.timeout, ssl=False) as response:
                 if response.status != 200:
                     error_msg = f"API Error {response.status}: {response.reason}"
                     # RapidAPI often sends detailed error messages in the body
@@ -108,8 +106,7 @@ class TwitterRapidClient:
                     raise TwitterAPIError(f"Invalid JSON received: {text[:100]}...")
                     
         except aiohttp.ClientConnectorError as e:
-             # Specific handling for proxy connection issues
-            logger.error(f"Connection failed (check proxy settings at {self.proxy_url}): {e}")
+            logger.error(f"Connection failed while calling Twitter RapidAPI: {e}")
             raise
 
     async def search_tweets(

@@ -187,8 +187,8 @@ async def run_graph(inputs):
         )
         if candlestick_figure:
             await cl.Message(
-                content=f"### 📉 Price Chart\n{chart_symbol or ''}",
-                elements=[cl.Plotly(name="candlestick_chart", figure=candlestick_figure, display="inline")],
+                content=f"### 📉 نمودار قیمت\n{chart_symbol or ''}",
+                elements=[cl.Plotly(name="نمودار شمعی", figure=candlestick_figure, display="inline")],
                 parent_id=None,
             ).send()
 

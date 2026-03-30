@@ -30,10 +30,11 @@ class RahavardClient:
     """
     Async client for interacting with the Rahavard365 API.
     """
-    def __init__(self, base_url:str=settings.rahavard_base_url ,timeout: int = 30):
+    def __init__(self, base_url:str=settings.rahavard_base_url ,timeout: int = 30, proxy_url: Optional[str] = settings.proxy_url):
         self.timeout = ClientTimeout(total=timeout)
         self.session: Optional[ClientSession] = None
         self.base_url = base_url
+        self.proxy_url = proxy_url
 
     async def __aenter__(self):
         connector = TCPConnector(limit=100)
@@ -67,7 +68,14 @@ class RahavardClient:
         
         logger.debug(f"Requesting: {method} {self.base_url}/{endpoint} | Params: {params}")
 
-        async with self.session.request(method, url, params=params, ssl=False , timeout=self.timeout) as response:
+        async with self.session.request(
+            method,
+            url,
+            params=params,
+            ssl=False,
+            timeout=self.timeout,
+            proxy=self.proxy_url,
+        ) as response:
             if response.status != 200:
                 error_msg = f"API Error {response.status}: {response.reason} for URL: {url}"
                 raise RahavardError(error_msg)

@@ -198,7 +198,7 @@ class StockAnalysisPipeline:
 
         # Tavily Search
         try:
-            async with TavilyClient(api_key=settings.tavily_api_key.get_secret_value(), base_url=settings.tavily_base_url, proxy_url=settings.proxy_url) as tavily:
+            async with TavilyClient(api_key=settings.tavily_api_key.get_secret_value(), base_url=settings.tavily_base_url) as tavily:
                 asset_name = self.rahavard_data.get('details', {}).get('name', '')
                 query = f"تحلیل بنیادی و تکنیکال و بررسی نماد {self.symbol_name} یا {asset_name}"
                 end_date = datetime.now().date()

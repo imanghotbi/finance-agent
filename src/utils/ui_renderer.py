@@ -69,3 +69,49 @@ def render_final_report(text: str) -> str:
         f"# 📝 Final Finance Agent Report\n\n"
         f"{text}\n"
     )
+
+
+def build_candlestick_chart(price_history: list[dict], symbol: str, short_name: str | None = None):
+    if not price_history:
+        return None
+
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        return None
+
+    df = pd.DataFrame(price_history)
+    required_columns = {"date_time", "open_price", "high_price", "low_price", "real_close_price"}
+    if not required_columns.issubset(df.columns):
+        return None
+
+    df = df[list(required_columns | {"volume"} & set(df.columns))].copy()
+    df["date_time"] = pd.to_datetime(df["date_time"], errors="coerce")
+    df.dropna(subset=["date_time", "open_price", "high_price", "low_price", "real_close_price"], inplace=True)
+    if df.empty:
+        return None
+
+    df.sort_values("date_time", inplace=True)
+
+    figure = go.Figure(
+        data=[
+            go.Candlestick(
+                x=df["date_time"],
+                open=df["open_price"],
+                high=df["high_price"],
+                low=df["low_price"],
+                close=df["real_close_price"],
+                name=symbol,
+            )
+        ]
+    )
+    display_name = f"{symbol} - {short_name}" if short_name else symbol
+    figure.update_layout(
+        title=f"Candlestick Chart: {display_name}",
+        xaxis_title="Date",
+        yaxis_title="Price",
+        xaxis_rangeslider_visible=False,
+        template="plotly_white",
+        height=500,
+    )
+    return figure

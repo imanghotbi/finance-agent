@@ -67,7 +67,9 @@ class NewsSocialState(TypedDict):
 class AgentState(TypedDict):
     
     symbol: Annotated[str, update_latest]
+    short_name: str
     messages: list[Any]
+    price_history: list[Dict[str, Any]]
     
     # Inputs
     technical_data: Dict[str, Any]

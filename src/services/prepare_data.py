@@ -309,6 +309,7 @@ class StockAnalysisPipeline:
                 "short_name": self.rahavard_data["info"]['short_name'],
                 "analysis_datetime": datetime.now(),
                 "data_points_analyzed": len(self.df),
+                "price_history": self.rahavard_data.get('history', [])[:180],
                 "market_data": {
                     "current_price": current_price,
                     "general_snapshot": self.rahavard_data.get('details')

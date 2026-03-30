@@ -96,6 +96,9 @@ async def run_orchestrator(state: AgentState):
 
     logger.info("--- 🏁 Orchestrator Finished ---")
     return {
+        "symbol": symbol_data["symbol"],
+        "short_name": symbol_data.get("short_name", ""),
+        "price_history": symbol_data.get("price_history", []),
         "technical_data" : symbol_data['technical_analysis'],
         "fundamental_data" : {
             "symbol_name": symbol_data["symbol"],

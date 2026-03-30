@@ -4,7 +4,8 @@ from src.utils.ui_renderer import (
     render_technical_report, 
     render_fundamental_report, 
     render_social_report, 
-    render_final_report
+    render_final_report,
+    build_candlestick_chart,
 )
 # Import Schemas to convert Dicts back to Objects
 from src.schema.technical import TechnicalConsensus
@@ -66,6 +67,9 @@ async def run_graph(inputs):
     
     # Placeholder to store the final report data
     final_report_payload = None
+    price_history_payload = None
+    chart_symbol = None
+    chart_short_name = None
 
     print(f"--- Graph Start for Thread {thread_id} ---")
 
@@ -90,6 +94,9 @@ async def run_graph(inputs):
                     await cl.Message(content="🔄 آغاز بررسی جامع نماد بورسی ...").send()
                     research_step = cl.Step(name="Market Research (0%)", type="process" , parent_id=cl.context.current_step.id)
                     await research_step.send()
+                price_history_payload = node_output.get("price_history", [])
+                chart_symbol = node_output.get("symbol")
+                chart_short_name = node_output.get("short_name")
 
             # Define worker nodes for progress calculation
             worker_nodes = [
@@ -173,6 +180,17 @@ async def run_graph(inputs):
     await asyncio.sleep(0.5)
     if final_report_payload:
         await cl.Message(content=render_final_report(final_report_payload) , parent_id=None).send()
+        candlestick_figure = build_candlestick_chart(
+            price_history_payload or [],
+            chart_symbol or "",
+            chart_short_name,
+        )
+        if candlestick_figure:
+            await cl.Message(
+                content=f"### 📉 Price Chart\n{chart_symbol or ''}",
+                elements=[cl.Plotly(name="candlestick_chart", figure=candlestick_figure, display="inline")],
+                parent_id=None,
+            ).send()
 
     # Handle Interrupts
     snapshot = await graph_app.aget_state(config)

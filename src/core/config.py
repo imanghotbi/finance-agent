@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     model_name:str = 'qwen/qwen3-235b-a22b'
     model_name_overrides: Dict[str, str] = {}
     model_api_key:SecretStr
+    model_base_url: Optional[str] = None
+    model_reasoning_effort: str = "low"
     max_tokens:Optional[int] = 16255
     top_p:float = 0.0
 

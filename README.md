@@ -117,7 +117,6 @@ Core libraries used by the project:
 - `chainlit`
 - `langgraph`
 - `langchain-core`
-- `langchain-nvidia-ai-endpoints`
 - `langchain-openai`
 - `pydantic`
 - `pydantic-settings`
@@ -152,8 +151,10 @@ PROXY_URL=http://your-proxy-if-needed
 TAVILY_API_KEY=your_tavily_api_key
 
 MODEL_API_KEY=your_model_api_key
+MODEL_BASE_URL=https://api.openai.com/v1
 MODEL_NAME=qwen/qwen3-235b-a22b
 MODEL_NAME_OVERRIDES={"introduction":"qwen/qwen3-32b","technical":"qwen/qwen3-235b-a22b","fundamental":"qwen/qwen3-235b-a22b","social_news":"qwen/qwen3-32b","reporter":"qwen/qwen3-235b-a22b"}
+MODEL_REASONING_EFFORT=low
 ```
 
 Optional Mongo collection names:

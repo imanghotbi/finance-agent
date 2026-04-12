@@ -1,7 +1,6 @@
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_openai import ChatOpenAI
 from src.core.config import settings
-from typing import Optional
+from typing import Optional, Dict, Any
 
 class LLMFactory:
     @staticmethod
@@ -20,14 +19,18 @@ class LLMFactory:
 
         tools = tools or []
         resolved_model_name = LLMFactory.resolve_model_name(node_name=node_name, model_name=model_name)
+        model_kwargs: Dict[str, Any] = {}
+        if settings.model_reasoning_effort:
+            model_kwargs["reasoning_effort"] = settings.model_reasoning_effort
 
-        llm = ChatNVIDIA(
+        llm = ChatOpenAI(
             model=resolved_model_name,
             api_key=settings.model_api_key.get_secret_value(),
+            base_url=settings.model_base_url,
             temperature=temperature,
             max_tokens=max_output_tokens or settings.max_tokens,
-            # top_p= top_p or settings.top_p,
-            model_kwargs = {'chat_template_kwargs':{'thinking':thinking}},
+            top_p=top_p if top_p is not None else settings.top_p,
+            model_kwargs=model_kwargs,
         )
         if structured_output:
             return llm.with_structured_output(structured_output)

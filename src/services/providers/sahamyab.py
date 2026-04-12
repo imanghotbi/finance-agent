@@ -3,7 +3,7 @@ import json
 from typing import Dict, Optional, Any, List
 import logging
 import aiohttp
-from aiohttp import ClientSession, ClientTimeout, TCPConnector
+from aiohttp import ClientSession, ClientTimeout
 
 from tenacity import (
     retry,
@@ -20,6 +20,11 @@ except ImportError:
     logger = logging.getLogger("Finance Agent System")
     logging.basicConfig(level=logging.INFO)
 from src.core.config import settings
+from src.utils.proxy import (
+    build_proxy_connector,
+    normalize_proxy_url,
+    proxy_request_kwargs,
+)
 
 class SahamyabError(Exception):
     """Custom exception for Sahamyab API related errors."""
@@ -33,10 +38,10 @@ class SahamyabClient:
         self.timeout = ClientTimeout(total=timeout)
         self.session: Optional[ClientSession] = None
         self.base_url = base_url
-        self.proxy_url = proxy_url
+        self.proxy_url = normalize_proxy_url(proxy_url)
 
     async def __aenter__(self):
-        connector = TCPConnector(limit=100)
+        connector = build_proxy_connector(self.proxy_url, limit=100)
         self.session = ClientSession(
             headers=settings.default_headers, 
             base_url= self.base_url,
@@ -61,7 +66,12 @@ class SahamyabClient:
         Internal method to handle HTTP requests with Tenacity retry logic.
         """
         if self.session is None:
-            self.session = ClientSession(headers=settings.default_headers, base_url=self.base_url ,timeout=self.timeout)
+            self.session = ClientSession(
+                headers=settings.default_headers,
+                base_url=self.base_url,
+                timeout=self.timeout,
+                connector=build_proxy_connector(self.proxy_url, limit=100),
+            )
 
         logger.debug(f"Requesting: {method} {self.base_url}/{endpoint} | Params: {params}")
 
@@ -72,7 +82,7 @@ class SahamyabClient:
             json=json_data,
             timeout=self.timeout,
             ssl=False,
-            proxy=self.proxy_url,
+            **proxy_request_kwargs(self.proxy_url),
         ) as response:
             if response.status != 200:
                 error_msg = f"API Error {response.status}: {response.reason} for URL: {endpoint}"

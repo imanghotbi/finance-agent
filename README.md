@@ -148,6 +148,7 @@ MONGO_PASSWORD=your_password
 
 RAPID_API_KEY=your_rapid_api_key
 PROXY_URL=http://your-proxy-if-needed
+# also supported: socks5://user:pass@127.0.0.1:1080
 TAVILY_API_KEY=your_tavily_api_key
 
 MODEL_API_KEY=your_model_api_key

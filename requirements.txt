@@ -1,6 +1,7 @@
 motor
 pydantic-settings
 aiohttp
+aiohttp-socks
 tenacity 
 pandas
 numpy

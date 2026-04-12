@@ -13,6 +13,7 @@ from pydantic import BaseModel, ValidationError
 try:
     from src.core.logger import logger
     from src.core.config import settings
+    from src.utils.proxy import build_proxy_connector, proxy_request_kwargs
     from src.core.mongo_manger import MongoManager
 except ImportError:
     import logging
@@ -230,8 +231,15 @@ async def scrape_codal_report(url: str) -> str:
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, ssl=ssl_context, timeout=30, proxy=settings.proxy_url) as response:
+    async with aiohttp.ClientSession(
+        connector=build_proxy_connector(settings.proxy_url, limit=100)
+    ) as session:
+        async with session.get(
+            url,
+            ssl=ssl_context,
+            timeout=30,
+            **proxy_request_kwargs(settings.proxy_url),
+        ) as response:
             response.raise_for_status()
             content = await response.read()
             

@@ -19,9 +19,6 @@ class LLMFactory:
 
         tools = tools or []
         resolved_model_name = LLMFactory.resolve_model_name(node_name=node_name, model_name=model_name)
-        model_kwargs: Dict[str, Any] = {}
-        if settings.model_reasoning_effort:
-            model_kwargs["reasoning_effort"] = settings.model_reasoning_effort
 
         llm = ChatOpenAI(
             model=resolved_model_name,
@@ -30,7 +27,7 @@ class LLMFactory:
             temperature=temperature,
             max_tokens=max_output_tokens or settings.max_tokens,
             top_p=top_p if top_p is not None else settings.top_p,
-            model_kwargs=model_kwargs,
+            reasoning_effort=settings.model_reasoning_effort if thinking else None
         )
         if structured_output:
             return llm.with_structured_output(structured_output)

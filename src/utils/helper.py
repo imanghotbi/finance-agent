@@ -146,6 +146,51 @@ async def invoke_llm_and_log(llm: Any, prompt_value: Any, node_name: str, sessio
     await save_llm_usage(node_name=node_name, session_id=session_id, response=response)
     return response
 
+
+async def invoke_structured_llm_and_log(
+    llm: Any,
+    prompt_value: Any,
+    schema_model: Type[BaseModel],
+    node_name: str,
+    session_id: Optional[str],
+) -> BaseModel:
+    """
+    Invoke structured output while still logging usage/cost from the raw model response.
+    """
+    try:
+        structured_llm = llm.with_structured_output(schema_model, include_raw=True)
+        result = await structured_llm.ainvoke(prompt_value)
+
+        if isinstance(result, dict) and "raw" in result:
+            raw_response = result.get("raw")
+            if raw_response is not None:
+                await save_llm_usage(node_name=node_name, session_id=session_id, response=raw_response)
+
+            parsing_error = result.get("parsing_error")
+            if parsing_error:
+                raise parsing_error
+
+            parsed = result.get("parsed")
+            if parsed is None:
+                raise ValueError(f"Structured output parsing returned None for schema {schema_model.__name__}")
+            return parsed
+
+        # Fallback path if adapter doesn't return include_raw payload structure.
+        parsed_output = result if isinstance(result, BaseModel) else None
+        if parsed_output is None:
+            parsed_output = await llm.with_structured_output(schema_model).ainvoke(prompt_value)
+        if getattr(parsed_output, "response_metadata", None) or getattr(parsed_output, "usage_metadata", None):
+            await save_llm_usage(node_name=node_name, session_id=session_id, response=parsed_output)
+        return parsed_output
+
+    except TypeError:
+        # Some model adapters may not support include_raw.
+        parsed_output = await llm.with_structured_output(schema_model).ainvoke(prompt_value)
+        if getattr(parsed_output, "response_metadata", None) or getattr(parsed_output, "usage_metadata", None):
+            await save_llm_usage(node_name=node_name, session_id=session_id, response=parsed_output)
+        return parsed_output
+
+
 async def _invoke_structured_with_recovery(
     llm: Any,
     prompt_value: Any,
@@ -155,7 +200,13 @@ async def _invoke_structured_with_recovery(
     session_id: Optional[str] = None,
 ) -> Tuple[BaseModel, Optional[Dict[str, str]]]:
     try:
-        parsed_output = await llm.with_structured_output(schema_model).ainvoke(prompt_value)
+        parsed_output = await invoke_structured_llm_and_log(
+            llm=llm,
+            prompt_value=prompt_value,
+            schema_model=schema_model,
+            node_name=node_name or schema_model.__name__,
+            session_id=session_id,
+        )
         if not parsed_output:
             raise
         return parsed_output, None

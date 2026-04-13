@@ -1,200 +1,245 @@
-import chainlit as cl
-from src.workflow.graph_builder import app as graph_app
-from src.utils.ui_renderer import (
-    render_technical_report, 
-    render_fundamental_report, 
-    render_social_report, 
-    render_final_report,
-    build_candlestick_chart,
-)
-# Import Schemas to convert Dicts back to Objects
-from src.schema.technical import TechnicalConsensus
-from src.schema.fundamental import FundamentalAnalysisOutput
-from src.schema.social_news import NewsSocialFusionOutput
-from src.utils.helper import ensure_object
-
-from langgraph.types import Command
-from langchain_core.messages import AIMessage, HumanMessage
+import argparse
+import asyncio
+import csv
+import json
+import tempfile
+import time
 import uuid
-import asyncio 
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
-@cl.on_chat_start
-async def start():
-    """Initializes the session."""
-    cl.user_session.set("thread_id", str(uuid.uuid4()))
-    cl.user_session.set("is_interrupted", False)
-    # Reset tracking
-    cl.user_session.set("reports_shown", {
-        "technical": False, "fundamental": False, "social": False
-    })
 
-    inputs = {"messages": [HumanMessage(content="خودت رو معرفی کن")], "symbol": ""}
-    await run_graph(inputs)
+_GRAPH_APP = None
+_APP_LOGGER = None
 
-@cl.on_message
-async def on_message(message: cl.Message):
-    """Handles user input."""
-    is_interrupted = cl.user_session.get("is_interrupted")
-    
-    if is_interrupted:
-        inputs = Command(resume=message.content)
-        await run_graph(inputs)
-    else:
-        # User entered a new symbol
-        await cl.Message(content=f"Starting analysis for: **{message.content}**...").send()
-        
-        # Reset Session for new analysis
-        cl.user_session.set("thread_id", str(uuid.uuid4()))
-        cl.user_session.set("reports_shown", {
-            "technical": False, "fundamental": False, "social": False
-        })
-        cl.user_session.set("is_interrupted", False)
-        
-        inputs = {"messages": [HumanMessage(content="خودت رو معرفی کن")], "symbol": ""}
-        await run_graph(inputs)
 
-async def run_graph(inputs):
-    """Runs the graph with granular node-by-node progress."""
-    thread_id = cl.user_session.get("thread_id")
-    config = {"configurable": {"thread_id": thread_id}}
-    
-    reports_shown = cl.user_session.get("reports_shown")
-    
-    # Progress Tracking
-    TOTAL_STEPS = 18
-    completed_steps = 0
-    research_step = None 
-    
-    # Placeholder to store the final report data
-    final_report_payload = None
-    price_history_payload = None
-    chart_symbol = None
-    chart_short_name = None
+def get_runtime_components():
+    global _GRAPH_APP, _APP_LOGGER
+    if _GRAPH_APP is None or _APP_LOGGER is None:
+        from src.workflow.graph_builder import app as graph_app
+        from src.core.logger import logger
 
-    print(f"--- Graph Start for Thread {thread_id} ---")
+        _GRAPH_APP = graph_app
+        _APP_LOGGER = logger
+    return _GRAPH_APP, _APP_LOGGER
 
-    async for data in graph_app.astream(inputs, config, stream_mode="updates", subgraphs=True):
-        
-        # Handle tuple return (namespace, event)
-        if isinstance(data, tuple):
-            event = data[1] 
-        else:
-            event = data
 
-        for node_name, node_output in event.items():
-            if node_name == "intro_agent":
-                messages = node_output.get("messages", [])
-                if messages:
-                    last_msg = messages[-1]
-                    if isinstance(last_msg, AIMessage) and last_msg.content:
-                        await cl.Message(content=last_msg.content).send()
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run batch stock analysis for symbols from a file.")
+    parser.add_argument(
+        "--symbols-file",
+        default="symbols.txt",
+        help="Path to a text file containing one symbol per line.",
+    )
+    parser.add_argument(
+        "--runtime-file",
+        default="runtime_report.csv",
+        help="CSV output file containing per-symbol runtime.",
+    )
+    parser.add_argument(
+        "--checkpoint-file",
+        default=".files/batch_checkpoint.json",
+        help="JSON checkpoint file used to resume after crash.",
+    )
+    parser.add_argument(
+        "--stop-on-error",
+        action="store_true",
+        help="Stop the run immediately when one symbol fails.",
+    )
+    return parser.parse_args()
 
-            if node_name == "data_preparation":
-                if not research_step:
-                    await cl.Message(content="🔄 آغاز بررسی جامع نماد بورسی ...").send()
-                    research_step = cl.Step(name="کاوش عمیق نماد بورسی (0%)", type="process" , parent_id=cl.context.current_step.id)
-                    await research_step.send()
-                price_history_payload = node_output.get("price_history", [])
-                chart_symbol = node_output.get("symbol")
-                chart_short_name = node_output.get("short_name")
 
-            # Define worker nodes for progress calculation
-            worker_nodes = [
-                "data_preparation",
-                "trend_agent", "oscillator_agent", "volatility_agent", 
-                "volume_agent", "sr_agent", "smart_money_agent", "technical_consensus",
-                "balance_sheet_agent", "earnings_quality_agent", 
-                "valuation_agent", "codal_agent", "fundamental_consensus",
-                "twitter_agent", "sahamyab_agent", "news_agent", "social_news_consensus"
-            ]
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
-            # --- 3. Update Progress ---
-            if node_name in worker_nodes:
-                completed_steps += 1
-                percent = min(int((completed_steps / TOTAL_STEPS) * 100), 95)
-                
-                if research_step:
-                    research_step.name = f"کاوش عمیق نماد بورسی ({percent}%)"
-                    await research_step.update()
 
-            # --- 4. Sub-Graph Reports ---
-            
-            # Technical Report
-            if node_name == "technical_consensus" or (node_name == "technical_graph" and not reports_shown["technical"]):
-                raw_data = node_output if node_name == "technical_consensus" else node_output.get("technical_consensus_report")
-                if isinstance(raw_data, dict) and "technical_consensus_report" in raw_data:
-                    raw_data = raw_data["technical_consensus_report"]
+def read_symbols(path: Path) -> list[str]:
+    if not path.exists():
+        raise FileNotFoundError(f"Symbols file not found: {path}")
 
-                if raw_data and not reports_shown["technical"] and research_step:
-                    reports_shown["technical"] = True
-                    async with cl.Step(name="تحلیل تکنیکال", type="run", parent_id=research_step.id) as step:
-                        report_obj = ensure_object(raw_data, TechnicalConsensus)
-                        step.output = render_technical_report(report_obj) if report_obj else "Error parsing data"
+    symbols: list[str] = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        symbols.append(line)
 
-            # Fundamental Report
-            if node_name == "fundamental_consensus" or (node_name == "fundamental_graph" and not reports_shown["fundamental"]):
-                raw_data = node_output if node_name == "fundamental_consensus" else node_output.get("fundamental_consensus_report")
-                if isinstance(raw_data, dict) and "fundamental_consensus_report" in raw_data:
-                    raw_data = raw_data["fundamental_consensus_report"]
+    unique_symbols = list(dict.fromkeys(symbols))
+    if not unique_symbols:
+        raise ValueError(f"No valid symbols found in: {path}")
 
-                if raw_data and not reports_shown["fundamental"] and research_step:
-                    reports_shown["fundamental"] = True
-                    async with cl.Step(name="تحلیل بنیادی", type="run", parent_id=research_step.id) as step:
-                        report_obj = ensure_object(raw_data, FundamentalAnalysisOutput)
-                        step.output = render_fundamental_report(report_obj) if report_obj else "Error parsing data"
+    return unique_symbols
 
-            # Social Report
-            if node_name == "social_news_consensus" or (node_name == "social_news_graph" and not reports_shown["social"]):
-                raw_data = node_output if node_name == "social_news_consensus" else node_output.get("social_news_consensus_report")
-                if isinstance(raw_data, dict) and "social_news_consensus_report" in raw_data:
-                    raw_data = raw_data["social_news_consensus_report"]
 
-                if raw_data and not reports_shown["social"] and research_step:
-                    reports_shown["social"] = True
-                    async with cl.Step(name="تحلیل اخبار و شبکه اجتماعی", type="run", parent_id=research_step.id) as step:
-                        report_obj = ensure_object(raw_data, NewsSocialFusionOutput)
-                        step.output = render_social_report(report_obj) if report_obj else "Error parsing data"
+def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as tmp:
+        json.dump(payload, tmp, ensure_ascii=False, indent=2)
+        tmp_path = Path(tmp.name)
+    tmp_path.replace(path)
 
-            # --- 5. Capture Final Report & Close Step ---
-            if node_name == "reporter_agent":
-                # 2. Capture the data, but DO NOT send the message yet
-                final = node_output.get("final_report") 
-                if final:
-                    final_report_payload = final
-            
-            # Persist State
-            cl.user_session.set("reports_shown", reports_shown)
 
-    # --- 6. Send Final Report AFTER Loop Ends ---
-    # This ensures the graph stream is closed and the previous Step is fully rendered/settled.
-    final_msg = None
-    if final_report_payload:
-        final_msg = cl.Message(content="⏳ در حال تنظیم گزارش نهایی...")
-        await final_msg.send()
+def load_checkpoint(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {
+            "created_at": utc_now_iso(),
+            "updated_at": utc_now_iso(),
+            "completed": {},
+            "failed": {},
+            "in_progress": None,
+        }
 
-    if research_step:
-        research_step.name = "Market Research (100%) - Completed"
-        research_step.output = "تمام مراحل با موفقیت انجام شد."
-        await research_step.update()
-    
-    await asyncio.sleep(0.5)
-    if final_report_payload:
-        await cl.Message(content=render_final_report(final_report_payload) , parent_id=None).send()
-        candlestick_figure = build_candlestick_chart(
-            price_history_payload or [],
-            chart_symbol or "",
-            chart_short_name,
-        )
-        if candlestick_figure:
-            await cl.Message(
-                content=f"### 📉 نمودار قیمت\n{chart_symbol or ''}",
-                elements=[cl.Plotly(name="نمودار شمعی", figure=candlestick_figure, display="inline")],
-                parent_id=None,
-            ).send()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data.setdefault("completed", {})
+    data.setdefault("failed", {})
+    data.setdefault("in_progress", None)
+    return data
 
-    # Handle Interrupts
-    snapshot = await graph_app.aget_state(config)
-    if snapshot.next and snapshot.tasks and snapshot.tasks[0].interrupts:
-        cl.user_session.set("is_interrupted", True)
-    else:
-        cl.user_session.set("is_interrupted", False)
+
+def append_runtime_row(runtime_file: Path, row: dict[str, Any]) -> None:
+    runtime_file.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "symbol",
+        "status",
+        "runtime_seconds",
+        "started_at",
+        "finished_at",
+        "session_id",
+        "error",
+    ]
+
+    write_header = not runtime_file.exists() or runtime_file.stat().st_size == 0
+    with runtime_file.open("a", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        if write_header:
+            writer.writeheader()
+        writer.writerow(row)
+
+
+async def run_symbol(symbol: str, session_id: str) -> dict[str, Any]:
+    graph_app, _ = get_runtime_components()
+    started_at = utc_now_iso()
+    started_monotonic = time.perf_counter()
+
+    inputs = {
+        "symbol": symbol,
+        "analysis_started_at": started_at,
+    }
+    config = {
+        "configurable": {
+            "thread_id": session_id,
+            "session_id": session_id,
+        }
+    }
+
+    final_state = await graph_app.ainvoke(inputs, config)
+
+    measured_runtime = round(time.perf_counter() - started_monotonic, 2)
+    finished_at = utc_now_iso()
+
+    return {
+        "state": final_state,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "runtime_seconds": final_state.get("time_consumption_seconds") or measured_runtime,
+    }
+
+
+async def run_batch(args: argparse.Namespace) -> int:
+    _, logger = get_runtime_components()
+    symbols_file = Path(args.symbols_file)
+    runtime_file = Path(args.runtime_file)
+    checkpoint_file = Path(args.checkpoint_file)
+
+    symbols = read_symbols(symbols_file)
+    checkpoint = load_checkpoint(checkpoint_file)
+
+    completed: dict[str, Any] = checkpoint["completed"]
+    failed: dict[str, Any] = checkpoint["failed"]
+
+    for index, symbol in enumerate(symbols, start=1):
+        if symbol in completed:
+            logger.info("[%s/%s] Skipping already completed symbol: %s", index, len(symbols), symbol)
+            continue
+
+        session_id = f"{symbol}-{uuid.uuid4()}"
+        checkpoint["in_progress"] = {
+            "symbol": symbol,
+            "session_id": session_id,
+            "started_at": utc_now_iso(),
+        }
+        checkpoint["updated_at"] = utc_now_iso()
+        atomic_write_json(checkpoint_file, checkpoint)
+
+        logger.info("[%s/%s] Running analysis for symbol: %s", index, len(symbols), symbol)
+
+        try:
+            result = await run_symbol(symbol=symbol, session_id=session_id)
+            row = {
+                "symbol": symbol,
+                "status": "success",
+                "runtime_seconds": result["runtime_seconds"],
+                "started_at": result["started_at"],
+                "finished_at": result["finished_at"],
+                "session_id": session_id,
+                "error": "",
+            }
+            append_runtime_row(runtime_file, row)
+
+            completed[symbol] = {
+                **row,
+                "final_report_preview": str(result["state"].get("final_report", ""))[:240],
+            }
+            failed.pop(symbol, None)
+            logger.info("Completed symbol: %s (runtime=%ss)", symbol, result["runtime_seconds"])
+
+        except Exception as exc:
+            finished_at = utc_now_iso()
+            row = {
+                "symbol": symbol,
+                "status": "failed",
+                "runtime_seconds": "",
+                "started_at": checkpoint["in_progress"]["started_at"],
+                "finished_at": finished_at,
+                "session_id": session_id,
+                "error": str(exc),
+            }
+            append_runtime_row(runtime_file, row)
+
+            failed[symbol] = row
+            logger.exception("Analysis failed for symbol: %s", symbol)
+
+            if args.stop_on_error:
+                checkpoint["updated_at"] = utc_now_iso()
+                atomic_write_json(checkpoint_file, checkpoint)
+                raise
+
+        finally:
+            checkpoint["in_progress"] = None
+            checkpoint["updated_at"] = utc_now_iso()
+            atomic_write_json(checkpoint_file, checkpoint)
+
+    logger.info(
+        "Batch run finished. completed=%s failed=%s total=%s runtime_file=%s checkpoint=%s",
+        len(completed),
+        len(failed),
+        len(symbols),
+        runtime_file,
+        checkpoint_file,
+    )
+    return 0 if not failed else 1
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        return asyncio.run(run_batch(args))
+    except KeyboardInterrupt:
+        _, logger = get_runtime_components()
+        logger.warning("Execution interrupted by user.")
+        return 130
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

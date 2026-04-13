@@ -2,7 +2,7 @@ motor
 pydantic-settings
 aiohttp
 aiohttp-socks
-tenacity 
+tenacity
 pandas
 numpy
 TA-Lib
@@ -13,5 +13,3 @@ langchain-openai
 pydantic
 beautifulsoup4
 jdatetime
-chainlit
-plotly

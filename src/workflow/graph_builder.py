@@ -9,7 +9,7 @@ from src.workflow.nodes.technical import (
     volume_agent_node,
     sr_agent_node,
     technical_consensus_node,
-    smart_money_agent_node
+    smart_money_agent_node,
 )
 from src.workflow.nodes.fundamental import (
     balance_sheet_node,
@@ -25,12 +25,6 @@ from src.workflow.nodes.social_news import (
     social_news_consensus_node,
 )
 from src.workflow.nodes.reporter import reporter_node
-from src.workflow.nodes.introduction import (
-    intro_agent_node, 
-    input_node, 
-    tool_node, 
-    should_continue
-)
 from src.workflow.nodes.data_preparation import run_orchestrator as data_preparation_node
 from src.core.logger import logger
 
@@ -39,12 +33,12 @@ from src.core.logger import logger
 # 1. Technical Sub-Graph
 # ==========================================
 def _dispatch_technical(_):
-    return ["trend_agent", "oscillator_agent", "volatility_agent", "volume_agent", "sr_agent" , "smart_money_agent"]
+    return ["trend_agent", "oscillator_agent", "volatility_agent", "volume_agent", "sr_agent", "smart_money_agent"]
+
 
 def build_technical_graph():
     workflow = StateGraph(TechnicalState)
-    
-    # Nodes
+
     workflow.add_node("trend_agent", trend_agent_node)
     workflow.add_node("oscillator_agent", oscillator_agent_node)
     workflow.add_node("volatility_agent", volatility_agent_node)
@@ -53,10 +47,9 @@ def build_technical_graph():
     workflow.add_node("smart_money_agent", smart_money_agent_node)
     workflow.add_node("technical_consensus", technical_consensus_node)
 
-    # Dispatcher (Fan-out)
     workflow.add_node("dispatch_tech", lambda x: x)
     workflow.set_entry_point("dispatch_tech")
-    
+
     workflow.add_conditional_edges(
         "dispatch_tech",
         _dispatch_technical,
@@ -66,21 +59,20 @@ def build_technical_graph():
             "volatility_agent": "volatility_agent",
             "volume_agent": "volume_agent",
             "sr_agent": "sr_agent",
-            "smart_money_agent" : "smart_money_agent"
+            "smart_money_agent": "smart_money_agent",
         },
     )
 
-    # Fan-in to Consensus
     workflow.add_edge("trend_agent", "technical_consensus")
     workflow.add_edge("oscillator_agent", "technical_consensus")
     workflow.add_edge("volatility_agent", "technical_consensus")
     workflow.add_edge("volume_agent", "technical_consensus")
     workflow.add_edge("sr_agent", "technical_consensus")
     workflow.add_edge("smart_money_agent", "technical_consensus")
-    
     workflow.add_edge("technical_consensus", END)
 
     return workflow.compile()
+
 
 # ==========================================
 # 2. Fundamental Sub-Graph
@@ -88,20 +80,19 @@ def build_technical_graph():
 def _dispatch_fundamental(_):
     return ["balance_sheet_agent", "earnings_quality_agent", "valuation_agent", "codal_agent"]
 
+
 def build_fundamental_graph():
     workflow = StateGraph(FundamentalState)
-    
-    # Nodes
+
     workflow.add_node("balance_sheet_agent", balance_sheet_node)
     workflow.add_node("earnings_quality_agent", earnings_quality_node)
     workflow.add_node("valuation_agent", valuation_node)
     workflow.add_node("codal_agent", codal_agent_node)
     workflow.add_node("fundamental_consensus", fundamental_consensus_node)
 
-    # Dispatcher
     workflow.add_node("dispatch_fund", lambda x: x)
     workflow.set_entry_point("dispatch_fund")
-    
+
     workflow.add_conditional_edges(
         "dispatch_fund",
         _dispatch_fundamental,
@@ -113,15 +104,14 @@ def build_fundamental_graph():
         },
     )
 
-    # Fan-in
     workflow.add_edge("balance_sheet_agent", "fundamental_consensus")
     workflow.add_edge("earnings_quality_agent", "fundamental_consensus")
     workflow.add_edge("valuation_agent", "fundamental_consensus")
     workflow.add_edge("codal_agent", "fundamental_consensus")
-    
     workflow.add_edge("fundamental_consensus", END)
 
     return workflow.compile()
+
 
 # ==========================================
 # 3. Social & News Sub-Graph
@@ -129,19 +119,18 @@ def build_fundamental_graph():
 def _dispatch_social_news(_):
     return ["twitter_agent", "sahamyab_agent", "news_agent"]
 
+
 def build_social_news_graph():
     workflow = StateGraph(NewsSocialState)
-    
-    # Nodes
+
     workflow.add_node("twitter_agent", twitter_agent_node)
     workflow.add_node("sahamyab_agent", sahamyab_agent_node)
     workflow.add_node("news_agent", news_agent_node)
     workflow.add_node("social_news_consensus", social_news_consensus_node)
 
-    # Dispatcher
     workflow.add_node("dispatch_social", lambda x: x)
     workflow.set_entry_point("dispatch_social")
-    
+
     workflow.add_conditional_edges(
         "dispatch_social",
         _dispatch_social_news,
@@ -152,61 +141,36 @@ def build_social_news_graph():
         },
     )
 
-    # Fan-in
     workflow.add_edge("twitter_agent", "social_news_consensus")
     workflow.add_edge("sahamyab_agent", "social_news_consensus")
     workflow.add_edge("news_agent", "social_news_consensus")
-    
     workflow.add_edge("social_news_consensus", END)
 
     return workflow.compile()
 
+
 # ==========================================
-# 4. Master Graph
+# 4. Batch Graph (Headless)
 # ==========================================
 def _dispatch_master(_):
     return ["technical_graph", "fundamental_graph", "social_news_graph"]
 
+
 def build_graph():
-    # We use AgentState which has both Tech and Fund keys
     workflow = StateGraph(AgentState)
-    
-    # Add Nodes
-    workflow.add_node("intro_agent", intro_agent_node)
-    workflow.add_node("input_node", input_node)
-    workflow.add_node("tool_node", tool_node)
+
     workflow.add_node("data_preparation", data_preparation_node)
-    
-    # Sub-Graphs
+    workflow.add_node("dispatch_master", lambda x: x)
+
     workflow.add_node("technical_graph", build_technical_graph())
     workflow.add_node("fundamental_graph", build_fundamental_graph())
     workflow.add_node("social_news_graph", build_social_news_graph())
-    
-    # Reporter
     workflow.add_node("reporter_agent", reporter_node)
 
-    # Entry Point
-    workflow.set_entry_point("intro_agent")
-    
-    # Loop Logic
-    workflow.add_conditional_edges(
-        "intro_agent",
-        should_continue,
-        {
-            "tool_node": "tool_node",
-            "input_node": "input_node"
-        }
-    )
-    
-    workflow.add_edge("input_node", "intro_agent")
-    workflow.add_edge("tool_node", "data_preparation")
-    
-    # Main Workflow
+    workflow.set_entry_point("data_preparation")
+
     workflow.add_edge("data_preparation", "dispatch_master")
-    
-    # Dispatcher for Parallel Execution
-    workflow.add_node("dispatch_master", lambda x: x)
-    
+
     workflow.add_conditional_edges(
         "dispatch_master",
         _dispatch_master,
@@ -217,17 +181,15 @@ def build_graph():
         },
     )
 
-    # Join at Reporter
     workflow.add_edge("technical_graph", "reporter_agent")
     workflow.add_edge("fundamental_graph", "reporter_agent")
     workflow.add_edge("social_news_graph", "reporter_agent")
-    
     workflow.add_edge("reporter_agent", END)
-    
+
     memory = MemorySaver()
-    # No explicit interrupt_before/after needed as we use interrupt() in the node
     app = workflow.compile(checkpointer=memory)
-    logger.info("Graph constructed and compiled successfully.")
+    logger.info("Batch graph constructed and compiled successfully.")
     return app
+
 
 app = build_graph()

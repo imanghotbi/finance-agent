@@ -81,6 +81,13 @@ Optional:
 python main.py --stop-on-error
 ```
 
+CLI options:
+
+- `--symbols-file`: input text file (default: `symbols.txt`)
+- `--runtime-file`: CSV output for runtime/status rows (default: `runtime_report.csv`)
+- `--checkpoint-file`: JSON state file for resume support (default: `.files/batch_checkpoint.json`)
+- `--stop-on-error`: stop immediately when one symbol fails
+
 ## Crash Recovery
 
 The batch runner writes progress into `--checkpoint-file` after each symbol and before each run starts.
@@ -90,10 +97,42 @@ If the process crashes, rerun the same command:
 - unfinished symbols are processed
 - runtime rows are appended to `--runtime-file`
 
+Current resume scope:
+
+- resume is at **symbol level** (not node-level within a symbol)
+- if a crash happens during one symbol, that symbol is re-run on next execution
+
 ## Output Files
 
 - Runtime CSV (`--runtime-file`): per-symbol status and runtime
 - Checkpoint JSON (`--checkpoint-file`): completed/failed/in-progress symbols
+
+Runtime CSV columns:
+
+- `symbol`
+- `status` (`success` or `failed`)
+- `runtime_seconds`
+- `started_at`
+- `finished_at`
+- `session_id`
+- `error`
+
+Checkpoint shape:
+
+```json
+{
+  "created_at": "2026-04-13T07:00:00+00:00",
+  "updated_at": "2026-04-13T07:12:21+00:00",
+  "completed": {
+    "فملی": {
+      "symbol": "فملی",
+      "status": "success"
+    }
+  },
+  "failed": {},
+  "in_progress": null
+}
+```
 
 ## Persistence
 

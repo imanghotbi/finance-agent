@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional, Tuple, Type
-from datetime import datetime , timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import ssl
 import aiohttp
@@ -85,12 +85,15 @@ async def save_llm_usage(node_name: str, session_id: Optional[str], response: An
 
 
 def build_analysis_timing(state: Dict[str, Any]) -> Dict[str, Any]:
-    completed_at = datetime.utcnow()
+    completed_at = datetime.now(timezone.utc)
     started_at_raw = state.get("analysis_started_at")
     started_at = None
     if started_at_raw:
         try:
             started_at = datetime.fromisoformat(started_at_raw)
+            # Normalize legacy naive timestamps to UTC so subtraction is safe.
+            if started_at.tzinfo is None:
+                started_at = started_at.replace(tzinfo=timezone.utc)
         except ValueError:
             started_at = None
 

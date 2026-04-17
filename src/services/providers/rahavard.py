@@ -222,6 +222,16 @@ class RahavardClient:
             logger.error(f"Error fetching symbol trade detail history for {asset_id}: {e}")
             return {}
 
+    @staticmethod
+    def _get_unit_size_multiplier(unit_size_sign: Optional[str]) -> int:
+        multipliers = {
+            "K": 10 ** 3,
+            "M": 10 ** 6,
+            "B": 10 ** 9,
+            "T": 10 ** 12,
+        }
+        return multipliers.get((unit_size_sign or "").upper(), 1)
+
     async def _fetch_fundamental_report(self, asset_id: str, endpoint: str) -> Optional[Dict]:
         """
         Refactored fundamental fetcher (kept here for completeness of context)
@@ -265,11 +275,24 @@ class RahavardClient:
                 
             years = [col['header_name'] for col in column_defs[1:]]
             
+            scalable_endpoints = {
+                "company-balance-sheets",
+                "company-profit-losses",
+                "company-cash-flows",
+            }
+
             parsed_rows = {}
             for row in data.get('row_data', []):
                 title = row.get('row_title', {}).get('title')
                 ticks = row.get('row_properties', {}).get('light_chart_ticks')
+                unit_size_sign = row.get('row_properties', {}).get('data_content_type', {}).get('unit_size_sign')
                 if title and ticks:
+                    if endpoint in scalable_endpoints:
+                        multiplier = self._get_unit_size_multiplier(unit_size_sign)
+                        ticks = [
+                            value * multiplier if isinstance(value, (int, float)) else value
+                            for value in ticks
+                        ]
                     parsed_rows[title] = ticks
 
             # 3. Map values to years

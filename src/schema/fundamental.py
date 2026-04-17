@@ -1,6 +1,10 @@
-from typing import List
+from typing import Any, Dict, List, Optional
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+
+
+class _BaseOut(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
 # ----------------------------
 # Balance Sheet Agent
@@ -12,16 +16,16 @@ class BalanceSheetSignal(str, Enum):
     STRAINED = "Strained"
     DISTRESSED = "Distressed"
 
-class FinancialStability(BaseModel):
+class FinancialStability(_BaseOut):
     liquidity_strength: str = Field(..., description="Assessment of short-term liquidity (e.g., 'Strong with Current Ratio > 1.5')")
     debt_pressure: str = Field(..., description="Assessment of leverage (e.g., 'Low risk, Debt/Equity < 0.5')")
     capital_buffer: str = Field(..., description="Assessment of cash reserves (e.g., 'High cash reserves covering 20% of liabilities')")
 
-class CapitalAllocation(BaseModel):
+class CapitalAllocation(_BaseOut):
     dividend_sustainability: str = Field(..., description="Is the payout ratio sustainable? (e.g., 'Sustainable at 40% payout')")
     balance_sheet_impact: str = Field(..., description="How allocation affects the sheet (e.g., 'Retained earnings strengthening equity')")
 
-class BalanceSheetOutput(BaseModel):
+class BalanceSheetOutput(_BaseOut):
     balance_sheet_signal: BalanceSheetSignal = Field(..., description="Overall financial health status")
     
     financial_stability: FinancialStability
@@ -40,15 +44,15 @@ class EarningsSignal(str, Enum):
     MIXED = "Mixed"
     LOW_QUALITY = "Low Quality"
 
-class ProfitabilityProfile(BaseModel):
+class ProfitabilityProfile(_BaseOut):
     margin_health: str = Field(..., description="Status of margins (e.g., 'Healthy Net Margin at 43%')")
     growth_trend: str = Field(..., description="Status of growth (e.g., 'Accelerating revenue growth (+40% YoY)')")
 
-class CashReality(BaseModel):
+class CashReality(_BaseOut):
     conversion_quality: str = Field(..., description="Relationship between Profit and Cash (e.g., 'High quality, OCF > Net Income')")
     capex_intensity: str = Field(..., description="Impact of reinvestment on free cash (e.g., 'Heavy Capex reducing FCF')")
 
-class EarningsQualityOutput(BaseModel):
+class EarningsQualityOutput(_BaseOut):
     earnings_signal: EarningsSignal = Field(..., description="Overall quality status of earnings")
     
     profitability_profile: ProfitabilityProfile
@@ -67,15 +71,15 @@ class ValuationSignal(str, Enum):
     PREMIUM_PRICING = "Premium Pricing"
     OVERVALUED = "Overvalued"
 
-class ValuationMultiples(BaseModel):
+class ValuationMultiples(_BaseOut):
     pe_context: str = Field(..., description="P/E relative to market norms (e.g., 'Attractive P/E of 5.5 vs Sector 7.0')")
     asset_backing: str = Field(..., description="P/B or Asset value context (e.g., 'High P/B justified by ROE')")
 
-class MarketStructure(BaseModel):
+class MarketStructure(_BaseOut):
     liquidity_status: str = Field(..., description="Float and tradeability (e.g., 'Highly liquid with 30% float')")
     market_weight: str = Field(..., description="Influence on the index (e.g., 'Market Leader / Big Cap')")
 
-class ValuationOutput(BaseModel):
+class ValuationOutput(_BaseOut):
     valuation_signal: ValuationSignal = Field(..., description="Overall valuation attractiveness")
     
     valuation_multiples: ValuationMultiples
@@ -88,12 +92,43 @@ class ValuationOutput(BaseModel):
 # Codal Agent
 # ----------------------------
 
-class CodalReportSelection(BaseModel):
+class CodalReportSelection(_BaseOut):
     selected_ids: List = Field(..., description="List of IDs of the most important financial codal reports like [codal_1 , ...]")
 
-class CodalAnalysisOutput(BaseModel):
+class CodalAnalysisOutput(_BaseOut):
     key_findings: List[str] = Field(..., description="List of key points extracted from the reports")
     summary: str = Field(..., description="Concise summary of the analysis")
+
+
+class BalanceSheetAgentState(_BaseOut):
+    symbol_name: Optional[str] = None
+    short_name: Optional[str] = None
+    raw_metrics: Dict[str, Any] = Field(default_factory=dict)
+    liquidity_and_solvency_ratios: Dict[str, Any] = Field(default_factory=dict)
+    payout_and_capital_allocation: Dict[str, Any] = Field(default_factory=dict)
+
+
+class EarningsQualityAgentState(_BaseOut):
+    symbol_name: Optional[str] = None
+    short_name: Optional[str] = None
+    raw_metrics: Dict[str, Any] = Field(default_factory=dict)
+    delta_metrics: Dict[str, Any] = Field(default_factory=dict)
+    quality_ratios: Dict[str, Any] = Field(default_factory=dict)
+    flags: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ValuationAgentState(_BaseOut):
+    symbol_name: Optional[str] = None
+    short_name: Optional[str] = None
+    market_raw: Dict[str, Any] = Field(default_factory=dict)
+    enterprise_value_block: Dict[str, Any] = Field(default_factory=dict)
+    multiples_and_yields: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CodalAgentState(_BaseOut):
+    total_reports_found: int = 0
+    selected_reports: List[Dict[str, Any]] = Field(default_factory=list)
+    scraped_reports: List[Dict[str, Any]] = Field(default_factory=list)
 
 # ----------------------------
 # Fundamental Agent
@@ -106,7 +141,7 @@ class InvestmentBias(str, Enum):
     SELL = "Sell"
     STRONG_SELL = "Strong Sell"
 
-class FundamentalAnalysisOutput(BaseModel):
+class FundamentalAnalysisOutput(_BaseOut):
 
     financial_resilience: str = Field(
         ..., 

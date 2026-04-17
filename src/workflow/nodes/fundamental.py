@@ -6,12 +6,16 @@ from langchain_core.messages import HumanMessage
 from src.utils.llm_factory import LLMFactory
 from src.workflow.state import FundamentalState
 from src.schema.fundamental import (
+    BalanceSheetAgentState,
     BalanceSheetOutput,
+    EarningsQualityAgentState,
     EarningsQualityOutput,
+    ValuationAgentState,
     ValuationOutput,
     FundamentalAnalysisOutput,
     CodalReportSelection,
-    CodalAnalysisOutput
+    CodalAnalysisOutput,
+    CodalAgentState,
 )
 from src.core.prompt import (
     BALANCE_SHEET_AGENT_PROMPT,
@@ -39,6 +43,7 @@ async def balance_sheet_node(state: FundamentalState, config: RunnableConfig):
     logger.info("📊 Starting Balance Sheet Analysis Node...")
     agent = BalanceSheetAgent(state["fundamental_data"])
     data = agent.process()
+    agent_state = BalanceSheetAgentState.model_validate(data)
     
     user_content = (
     "INPUT JSON:\n{input_json}\n\n"
@@ -56,7 +61,10 @@ async def balance_sheet_node(state: FundamentalState, config: RunnableConfig):
         llm, prompt_value, BalanceSheetOutput, node_name="balance_sheet_agent", session_id=get_session_id(config)
     )
     
-    response = {"balance_sheet_report": result}
+    response = {
+        "balance_sheet_report": agent_state,
+        "balance_sheet_analysis_report": result,
+    }
     if meta:
         response["balance_sheet_meta"] = meta
     
@@ -67,6 +75,7 @@ async def earnings_quality_node(state: FundamentalState, config: RunnableConfig)
     logger.info("💰 Starting Earnings Quality Analysis Node...")
     agent = EarningsQualityAgent(state["fundamental_data"])
     data = agent.process()
+    agent_state = EarningsQualityAgentState.model_validate(data)
     
     user_content = (
     "INPUT JSON:\n{input_json}\n\n"
@@ -84,7 +93,10 @@ async def earnings_quality_node(state: FundamentalState, config: RunnableConfig)
         llm, prompt_value, EarningsQualityOutput, node_name="earnings_quality_agent", session_id=get_session_id(config)
     )
     
-    response = {"earnings_quality_report": result}
+    response = {
+        "earnings_quality_report": agent_state,
+        "earnings_quality_analysis_report": result,
+    }
     if meta:
         response["earnings_quality_meta"] = meta
     
@@ -95,6 +107,7 @@ async def valuation_node(state: FundamentalState, config: RunnableConfig):
     logger.info("🏷️ Starting Valuation Analysis Node...")
     agent = ValuationAgent(state["fundamental_data"])
     data = agent.process()
+    agent_state = ValuationAgentState.model_validate(data)
     
     user_content = (
     "INPUT JSON:\n{input_json}\n\n"
@@ -112,7 +125,10 @@ async def valuation_node(state: FundamentalState, config: RunnableConfig):
         llm, prompt_value, ValuationOutput, node_name="valuation_agent", session_id=get_session_id(config)
     )
     
-    response = {"valuation_report": result}
+    response = {
+        "valuation_report": agent_state,
+        "valuation_analysis_report": result,
+    }
     if meta:
         response["valuation_meta"] = meta
     
@@ -180,7 +196,17 @@ async def codal_agent_node(state: FundamentalState, config: RunnableConfig):
 
     if not scraped_contents:
         logger.warning("⚠️ No accessible reports found for Codal analysis.")
-        return {"codal_report": CodalAnalysisOutput(key_findings=["No accessible reports found"], summary="Unable to analyze codal reports.")}
+        return {
+            "codal_report": CodalAgentState(
+                total_reports_found=len(clean_filtered_reports),
+                selected_reports=final_codal_list,
+                scraped_reports=[],
+            ),
+            "codal_analysis_report": CodalAnalysisOutput(
+                key_findings=["No accessible reports found"],
+                summary="Unable to analyze codal reports.",
+            ),
+        }
 
     # 4. Analyze Content
     combined_content = "\n\n---\n\n".join(scraped_contents)
@@ -193,7 +219,17 @@ async def codal_agent_node(state: FundamentalState, config: RunnableConfig):
         llm, prompt_analyze, CodalAnalysisOutput, node_name="codal_agent", session_id=get_session_id(config)
     )
     
-    response = {"codal_report": analysis_result}
+    response = {
+        "codal_report": CodalAgentState(
+            total_reports_found=len(clean_filtered_reports),
+            selected_reports=final_codal_list,
+            scraped_reports=[
+                {"url": report["url"], "content_preview": content}
+                for report, content in zip(final_codal_list, scraped_contents)
+            ],
+        ),
+        "codal_analysis_report": analysis_result,
+    }
     if meta:
         response["codal_meta"] = meta
     
@@ -203,7 +239,12 @@ async def codal_agent_node(state: FundamentalState, config: RunnableConfig):
 async def fundamental_consensus_node(state: FundamentalState, config: RunnableConfig):
     logger.info("🤝 Starting Fundamental Consensus Node...")
     # GATEKEEPER CHECK
-    required_keys = ["balance_sheet_report", "earnings_quality_report", "valuation_report","codal_report"]
+    required_keys = [
+        "balance_sheet_analysis_report",
+        "earnings_quality_analysis_report",
+        "valuation_analysis_report",
+        "codal_analysis_report",
+    ]
     missing = [key for key in required_keys if not state.get(key)]
     
     if missing:
@@ -230,10 +271,10 @@ async def fundamental_consensus_node(state: FundamentalState, config: RunnableCo
     prompt = create_prompt(FUNDAMENTAL_AGENT, user_content)
     
     to_prompt_vars = RunnableLambda(lambda x: {
-        "balance_sheet_data": json.dumps(x.get("balance_sheet_report", {}), ensure_ascii=False, default=str),
-        "earnings_data": json.dumps(x.get("earnings_quality_report", {}), ensure_ascii=False, default=str),
-        "valuation_data": json.dumps(x.get("valuation_report", {}), ensure_ascii=False, default=str),
-        "codal_data": json.dumps(x.get("codal_report", {}), ensure_ascii=False, default=str),
+        "balance_sheet_data": json.dumps(x.get("balance_sheet_analysis_report", {}), ensure_ascii=False, default=str),
+        "earnings_data": json.dumps(x.get("earnings_quality_analysis_report", {}), ensure_ascii=False, default=str),
+        "valuation_data": json.dumps(x.get("valuation_analysis_report", {}), ensure_ascii=False, default=str),
+        "codal_data": json.dumps(x.get("codal_analysis_report", {}), ensure_ascii=False, default=str),
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(state)

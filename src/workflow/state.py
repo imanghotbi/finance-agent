@@ -11,10 +11,14 @@ from src.schema.technical import (
     SmartMoneyAnalysis
 )
 from src.schema.fundamental import (
+    BalanceSheetAgentState,
     BalanceSheetOutput,
+    EarningsQualityAgentState,
     EarningsQualityOutput,
+    ValuationAgentState,
     ValuationOutput,
     FundamentalAnalysisOutput,
+    CodalAgentState,
     CodalAnalysisOutput
 )
 from src.schema.social_news import (
@@ -48,10 +52,14 @@ class FundamentalState(TypedDict):
     fundamental_data: Dict[str, Any]
     
     # Outputs
-    balance_sheet_report: BalanceSheetOutput
-    earnings_quality_report: EarningsQualityOutput
-    valuation_report: ValuationOutput
-    codal_report: CodalAnalysisOutput
+    balance_sheet_report: BalanceSheetAgentState
+    balance_sheet_analysis_report: BalanceSheetOutput
+    earnings_quality_report: EarningsQualityAgentState
+    earnings_quality_analysis_report: EarningsQualityOutput
+    valuation_report: ValuationAgentState
+    valuation_analysis_report: ValuationOutput
+    codal_report: CodalAgentState
+    codal_analysis_report: CodalAnalysisOutput
     fundamental_consensus_report: FundamentalAnalysisOutput
 
 class NewsSocialState(TypedDict):
@@ -89,10 +97,14 @@ class AgentState(TypedDict):
     technical_consensus_report: TechnicalConsensus
     
     # Fundamental Outputs
-    balance_sheet_report: BalanceSheetOutput
-    earnings_quality_report: EarningsQualityOutput
-    valuation_report: ValuationOutput
-    codal_report: CodalAnalysisOutput
+    balance_sheet_report: BalanceSheetAgentState
+    balance_sheet_analysis_report: BalanceSheetOutput
+    earnings_quality_report: EarningsQualityAgentState
+    earnings_quality_analysis_report: EarningsQualityOutput
+    valuation_report: ValuationAgentState
+    valuation_analysis_report: ValuationOutput
+    codal_report: CodalAgentState
+    codal_analysis_report: CodalAnalysisOutput
     fundamental_consensus_report: FundamentalAnalysisOutput
     
     # News & Social Outputs

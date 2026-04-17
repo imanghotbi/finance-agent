@@ -94,6 +94,7 @@ class AgentState(TypedDict):
     volatility_report: VolatilityAgentOutput
     volume_report: VolumeAgentOutput
     sr_report: SupportResistanceAgentOutput
+    smart_money_report: SmartMoneyAnalysis
     technical_consensus_report: TechnicalConsensus
     
     # Fundamental Outputs

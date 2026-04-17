@@ -55,8 +55,10 @@ class BalanceSheetAgent(BaseFundamentalAgent):
 
         latest_div_date, latest_div_val = self.get_latest_item(div_series)
         if latest_div_date and latest_div_val is not None:
-            ni_val = ni_series.get(latest_div_date)
-            if ni_val:
+            ni_val = ni_series.get(latest_div_date) if isinstance(ni_series, dict) else None
+            if ni_val is None and ni_series:
+                _, ni_val = self.get_latest_item(ni_series)
+            if ni_val is not None and ni_val != 0:
                 payout_alloc['dividend_payout_ratio_pct'] = (latest_div_val / ni_val) * 100
             else:
                 payout_alloc['dividend_payout_ratio_pct'] = None

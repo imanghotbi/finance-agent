@@ -16,6 +16,11 @@ class EarningsQualityAgent(BaseFundamentalAgent):
             "gross_margin_pct": "سود ناخالص به فروش",
             "operating_margin_pct": "حاشیه سود عملیاتی"
         }
+        reporting_basis = {
+            "raw_metrics_basis": "latest_reported_period",
+            "growth_basis": "latest_vs_previous_reported_period",
+            "ttm_label_caution": "Fields named *_ttm reflect the latest reported source values and should only be treated as true TTM if the upstream series is already normalized that way.",
+        }
 
         # --- 1. Raw Metrics ---
         raw_metrics = {}
@@ -134,6 +139,7 @@ class EarningsQualityAgent(BaseFundamentalAgent):
         return {
             "symbol_name": self.symbol_name,
             "short_name": self.name,
+            "reporting_basis": reporting_basis,
             "raw_metrics": raw_metrics,
             "delta_metrics": delta_metrics,
             "quality_ratios": quality_ratios,

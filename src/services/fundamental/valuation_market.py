@@ -15,19 +15,22 @@ class ValuationAgent(BaseFundamentalAgent):
 
         # Market Cap
         market_cap = None
+        market_cap_source = None
         if 'last_value' in self.gs and 'value' in self.gs['last_value']:
             market_cap = self.gs['last_value']['value']
-        else:
-            pass
+            market_cap_source = "general_snapshot.last_value.value"
         market_raw['market_cap'] = market_cap
+        market_raw['market_cap_source'] = market_cap_source
+        market_raw['market_cap_confidence'] = "medium" if market_cap is not None else "low"
 
         # Current Price
         current_price = self.md.get('current_price')
 
         # Shares Outstanding
         shares_outstanding = None
-        if market_cap is not None and current_price:
+        if market_cap is not None and current_price not in (None, 0):
             shares_outstanding = market_cap / current_price
+        market_raw['shares_outstanding_estimated'] = shares_outstanding
 
         # Free Float
         ff_data = self.gs.get('last_free_float', {})
@@ -87,6 +90,10 @@ class ValuationAgent(BaseFundamentalAgent):
         return {
             "symbol_name": self.symbol_name,
             "short_name": self.name,
+            "valuation_basis": {
+                "market_cap_assumption": "market_cap uses provider field general_snapshot.last_value.value and should be treated as medium-confidence unless corroborated elsewhere.",
+                "sales_basis": "ps_ttm and ev_to_sales use the latest reported revenue series value and assume the source is already normalized for TTM when labeled that way.",
+            },
             "market_raw": market_raw,
             "enterprise_value_block": ev_block,
             "multiples_and_yields": mult,

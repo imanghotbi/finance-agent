@@ -21,7 +21,7 @@ class ValuationAgent(BaseFundamentalAgent):
             market_cap_source = "general_snapshot.last_value.value"
         market_raw['market_cap'] = market_cap
         market_raw['market_cap_source'] = market_cap_source
-        market_raw['market_cap_confidence'] = "medium" if market_cap is not None else "low"
+        market_raw['market_cap_confidence'] = "high" if market_cap is not None else "low"
 
         # Current Price
         current_price = self.md.get('current_price')
@@ -91,8 +91,8 @@ class ValuationAgent(BaseFundamentalAgent):
             "symbol_name": self.symbol_name,
             "short_name": self.name,
             "valuation_basis": {
-                "market_cap_assumption": "market_cap uses provider field general_snapshot.last_value.value and should be treated as medium-confidence unless corroborated elsewhere.",
-                "sales_basis": "ps_ttm and ev_to_sales use the latest reported revenue series value and assume the source is already normalized for TTM when labeled that way.",
+                "market_cap_assumption": "market_cap uses provider field general_snapshot.last_value.value.",
+                "sales_basis": "ps_ttm and ev_to_sales use TTM revenue from the provider source.",
             },
             "market_raw": market_raw,
             "enterprise_value_block": ev_block,

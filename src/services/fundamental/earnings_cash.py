@@ -17,9 +17,8 @@ class EarningsQualityAgent(BaseFundamentalAgent):
             "operating_margin_pct": "حاشیه سود عملیاتی"
         }
         reporting_basis = {
-            "raw_metrics_basis": "latest_reported_period",
-            "growth_basis": "latest_vs_previous_reported_period",
-            "ttm_label_caution": "Fields named *_ttm reflect the latest reported source values and should only be treated as true TTM if the upstream series is already normalized that way.",
+            "raw_metrics_basis": "ttm",
+            "growth_basis": "ttm_vs_previous_ttm",
         }
 
         # --- 1. Raw Metrics ---

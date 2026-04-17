@@ -39,6 +39,12 @@ from src.core.logger import logger
 
 llm = LLMFactory.get_model(node_name="fundamental")
 
+
+def _prompt_json(value):
+    if hasattr(value, "model_dump"):
+        value = value.model_dump(mode="json")
+    return json.dumps(value, ensure_ascii=False, default=str)
+
 async def balance_sheet_node(state: FundamentalState, config: RunnableConfig):
     logger.info("📊 Starting Balance Sheet Analysis Node...")
     agent = BalanceSheetAgent(state["fundamental_data"])
@@ -52,7 +58,7 @@ async def balance_sheet_node(state: FundamentalState, config: RunnableConfig):
     prompt = create_prompt(BALANCE_SHEET_AGENT_PROMPT, user_content)
     
     to_prompt_vars = RunnableLambda(lambda x: {
-        "input_json": json.dumps(x, ensure_ascii=False, default=str),
+        "input_json": _prompt_json(x),
         "schema_json": json.dumps(BalanceSheetOutput.model_json_schema(), ensure_ascii=False)
     })
 
@@ -84,7 +90,7 @@ async def earnings_quality_node(state: FundamentalState, config: RunnableConfig)
     prompt = create_prompt(EARNINGS_QUALITY_AGENT_PROMPT, user_content)
     
     to_prompt_vars = RunnableLambda(lambda x: {
-        "input_json": json.dumps(x, ensure_ascii=False, default=str),
+        "input_json": _prompt_json(x),
         "schema_json": json.dumps(EarningsQualityOutput.model_json_schema(), ensure_ascii=False)
     })
 
@@ -116,7 +122,7 @@ async def valuation_node(state: FundamentalState, config: RunnableConfig):
     prompt = create_prompt(VALUATION_AGENT_PROMPT, user_content)
     
     to_prompt_vars = RunnableLambda(lambda x: {
-        "input_json": json.dumps(x, ensure_ascii=False, default=str),
+        "input_json": _prompt_json(x),
         "schema_json": json.dumps(ValuationOutput.model_json_schema(), ensure_ascii=False)
     })
 
@@ -271,10 +277,10 @@ async def fundamental_consensus_node(state: FundamentalState, config: RunnableCo
     prompt = create_prompt(FUNDAMENTAL_AGENT, user_content)
     
     to_prompt_vars = RunnableLambda(lambda x: {
-        "balance_sheet_data": json.dumps(x.get("balance_sheet_analysis_report", {}), ensure_ascii=False, default=str),
-        "earnings_data": json.dumps(x.get("earnings_quality_analysis_report", {}), ensure_ascii=False, default=str),
-        "valuation_data": json.dumps(x.get("valuation_analysis_report", {}), ensure_ascii=False, default=str),
-        "codal_data": json.dumps(x.get("codal_analysis_report", {}), ensure_ascii=False, default=str),
+        "balance_sheet_data": _prompt_json(x.get("balance_sheet_analysis_report", {})),
+        "earnings_data": _prompt_json(x.get("earnings_quality_analysis_report", {})),
+        "valuation_data": _prompt_json(x.get("valuation_analysis_report", {})),
+        "codal_data": _prompt_json(x.get("codal_analysis_report", {})),
     })
 
     prompt_value = (to_prompt_vars | prompt).invoke(state)

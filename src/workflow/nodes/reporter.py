@@ -8,6 +8,12 @@ from src.core.logger import logger
 
 llm = LLMFactory.get_model(node_name="reporter")
 
+
+def _prompt_json(value):
+    if hasattr(value, "model_dump"):
+        value = value.model_dump(mode="json")
+    return json.dumps(value, ensure_ascii=False, default=str)
+
 async def reporter_node(state: AgentState, config: RunnableConfig):
     logger.info("📝 Starting Reporter Node...")
     
@@ -43,9 +49,9 @@ async def reporter_node(state: AgentState, config: RunnableConfig):
     prompt = create_prompt(REPORTER_AGENT, user_content)
     
     to_prompt_vars = RunnableLambda(lambda x: {
-        "technical_consensus": json.dumps(x.get("technical_consensus_report", {}), ensure_ascii=False, default=str),
-        "fundamental_consensus": json.dumps(x.get("fundamental_consensus_report", {}), ensure_ascii=False, default=str),
-        "social_news_consensus": json.dumps(x.get("social_news_consensus_report", {}), ensure_ascii=False, default=str),
+        "technical_consensus": _prompt_json(x.get("technical_consensus_report", {})),
+        "fundamental_consensus": _prompt_json(x.get("fundamental_consensus_report", {})),
+        "social_news_consensus": _prompt_json(x.get("social_news_consensus_report", {})),
     })
 
     # We expect a string (Markdown), not structured JSON

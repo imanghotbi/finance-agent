@@ -28,6 +28,12 @@ from src.core.logger import logger
 
 llm = LLMFactory.get_model(node_name="technical")
 
+
+def _prompt_json(value):
+    if hasattr(value, "model_dump"):
+        value = value.model_dump(mode="json")
+    return json.dumps(value, ensure_ascii=False, default=str)
+
 async def trend_agent_node(state: TechnicalState, config: RunnableConfig):
     logger.info("📈 Starting Trend Analysis Node...")
     data = state["technical_data"].get("trend", {})
@@ -43,7 +49,7 @@ async def trend_agent_node(state: TechnicalState, config: RunnableConfig):
     )
     trend_prompt = create_prompt(TREND_PROMPT , user_content)
     to_prompt_vars = RunnableLambda(lambda x: {
-    "input_json": json.dumps(x, ensure_ascii=False, default=str),
+    "input_json": _prompt_json(x),
     "schema_json": json.dumps(TrendAgentOutput.model_json_schema(), ensure_ascii=False)
         })
 
@@ -73,7 +79,7 @@ async def oscillator_agent_node(state: TechnicalState, config: RunnableConfig):
     )
     oscillator_prompt = create_prompt(OSCILLATOR_PROMPT , user_content)
     to_prompt_vars = RunnableLambda(lambda x: {
-    "input_json": json.dumps(x, ensure_ascii=False, default=str),
+    "input_json": _prompt_json(x),
     "schema_json": json.dumps(OscillatorAgentOutput.model_json_schema(), ensure_ascii=False)
         })
 
@@ -103,7 +109,7 @@ async def volatility_agent_node(state: TechnicalState, config: RunnableConfig):
     )
     volatility_prompt = create_prompt(VOLATILITY_PROMPT , user_content)
     to_prompt_vars = RunnableLambda(lambda x: {
-    "input_json": json.dumps(x, ensure_ascii=False, default=str),
+    "input_json": _prompt_json(x),
     "schema_json": json.dumps(VolatilityAgentOutput.model_json_schema(), ensure_ascii=False)
         })
     prompt_value = (to_prompt_vars | volatility_prompt).invoke({"input_data": input_data})
@@ -131,7 +137,7 @@ async def volume_agent_node(state: TechnicalState, config: RunnableConfig):
     )
     volume_prompt = create_prompt(VOLUME_PROMPT , user_content)
     to_prompt_vars = RunnableLambda(lambda x: {
-    "input_json": json.dumps(x, ensure_ascii=False, default=str),
+    "input_json": _prompt_json(x),
     "schema_json": json.dumps(VolumeAgentOutput.model_json_schema(), ensure_ascii=False)
         })
 
@@ -161,7 +167,7 @@ async def sr_agent_node(state: TechnicalState, config: RunnableConfig):
     )
     sr_prompt = create_prompt(SR_PROMPT , user_content)
     to_prompt_vars = RunnableLambda(lambda x: {
-    "input_json": json.dumps(x, ensure_ascii=False, default=str),
+    "input_json": _prompt_json(x),
     "schema_json": json.dumps(SupportResistanceAgentOutput.model_json_schema(), ensure_ascii=False)
         })
 
@@ -186,7 +192,7 @@ async def smart_money_agent_node(state: TechnicalState, config: RunnableConfig):
 
     smart_money_prompt = create_prompt(SMART_MOENY_PROMPT , user_content)
     to_prompt_vars = RunnableLambda(lambda x: {
-    "input_json": json.dumps(x, ensure_ascii=False, default=str),
+    "input_json": _prompt_json(x),
     "schema_json": json.dumps(SmartMoneyAnalysis.model_json_schema(), ensure_ascii=False)
         })
     
@@ -236,12 +242,12 @@ async def technical_consensus_node(state: TechnicalState, config: RunnableConfig
         """
     consensus_prompt = create_prompt(TECHNICAL_AGENT, user_content)
     to_prompt_vars = RunnableLambda(lambda x: {
-        "trend_data": json.dumps(x.get("trend_report", {}), ensure_ascii=False, default=str),
-        "oscillator_data": json.dumps(x.get("oscillator_report", {}), ensure_ascii=False, default=str),
-        "volatility_data": json.dumps(x.get("volatility_report", {}), ensure_ascii=False, default=str),
-        "volume_data": json.dumps(x.get("volume_report", {}), ensure_ascii=False, default=str),
-        "sr_data": json.dumps(x.get("sr_report", {}), ensure_ascii=False, default=str),
-        "smart_money_data": json.dumps(x.get("smart_money_report", {}), ensure_ascii=False, default=str)
+        "trend_data": _prompt_json(x.get("trend_report", {})),
+        "oscillator_data": _prompt_json(x.get("oscillator_report", {})),
+        "volatility_data": _prompt_json(x.get("volatility_report", {})),
+        "volume_data": _prompt_json(x.get("volume_report", {})),
+        "sr_data": _prompt_json(x.get("sr_report", {})),
+        "smart_money_data": _prompt_json(x.get("smart_money_report", {}))
     })
 
     prompt_value = (to_prompt_vars | consensus_prompt).invoke(state)

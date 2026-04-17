@@ -302,7 +302,7 @@ You will receive the raw JSON outputs of:
     * *Logic:* A "Bullish" trend in "Expansion" is a momentum setup.
 
 * **Step 2: The Truth Check (Smart Money vs. Retail Volume)**
-    * Compare `smart_money_agent.smart_money_status` against `volume_agent.flow_bias`.
+    * Compare `smart_money_agent.smart_money_status` against `volume_agent.volume_summary.flow_bias`.
     * **The Trap Detection:**
         * Price Rising + Retail Volume High + Smart Money `DISTRIBUTION`/`EXITING` = **Strong Bearish Divergence (Bull Trap)**.
         * Price Falling + Retail Volume Low + Smart Money `ACCUMULATION`/`ENTERING` = **Strong Bullish Divergence (Bear Trap)**.
@@ -400,7 +400,6 @@ A JSON-like object containing:
 * optionally `reporting_basis`:
     * `raw_metrics_basis`
     * `growth_basis`
-    * `ttm_label_caution`
 * `delta_metrics`:
     * `revenue_growth_yoy_pct` (top-line expansion)
     * `net_income_growth_yoy_pct` (bottom-line expansion)
@@ -434,7 +433,6 @@ A JSON-like object containing:
 * No predictions and no trade advice ("buy/sell").
 * Do not invent missing values.
 * Use provided numbers (round sensibly, e.g., 43.9% instead of 43.9059%).
-* Treat `*_ttm` labels as latest reported source values unless the input explicitly confirms they are trailing-twelve-month normalized.
 * **Context is Key:** In the Iranian market (high inflation), high nominal growth is common; focus on *Real* growth signals like OCF > Net Income.
 * Keep it short: 5-10 bullet lines max.
 
@@ -494,7 +492,6 @@ A JSON-like object containing:
 * No predictions and no trade advice ("buy/sell").
 * Do not invent missing values.
 * Use provided numbers (round sensibly, e.g., P/E 16.7).
-* If `market_cap_confidence` is not high, explicitly lower certainty around size/liquidity conclusions.
 * **Context is Key:** Recognize that "Giant" companies (like FMLI/Foolad) often command a liquidity premium but may have lower volatility.
 * Keep it short: 5-10 bullet lines max.
 

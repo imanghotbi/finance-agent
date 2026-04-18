@@ -11,7 +11,6 @@ from src.core.mongo_manger import MongoManager
 from src.services.providers.rahavard import RahavardClient
 from src.services.providers.sahamyab import SahamyabClient
 from src.services.providers.twitter_rapid import TwitterRapidClient
-from src.services.providers.tavily_search import TavilyClient
 
 # Analyzers
 from src.services.technical.trend import TrendAnalyzer
@@ -181,8 +180,8 @@ class StockAnalysisPipeline:
             logger.error(f"❌ Error in Sahamyab Fetch: {e}", exc_info=True)
 
     async def fetch_external_search(self):
-        """Fetches Twitter RapidAPI and Tavily. Non-critical."""
-        logger.info("3️⃣ Fetching External Search Data (Twitter/Tavily)...")
+        """Fetches non-critical external search data."""
+        logger.info("3️⃣ Fetching External Search Data (Twitter)...")
         
         # Twitter Rapid API
         try:
@@ -195,18 +194,6 @@ class StockAnalysisPipeline:
         except Exception as e:
             logger.warning(f"⚠️ Twitter RapidAPI failed: {e}")
             self.external_data['rapid_tweets'] = []
-
-        # Tavily Search
-        try:
-            async with TavilyClient(api_key=settings.tavily_api_key.get_secret_value(), base_url=settings.tavily_base_url) as tavily:
-                asset_name = self.rahavard_data.get('details', {}).get('name', '')
-                query = f"تحلیل بنیادی و تکنیکال و بررسی نماد {self.symbol_name} یا {asset_name}"
-                end_date = datetime.now().date()
-                start_date = end_date - timedelta(days=30)
-                self.external_data['tavily'] = await tavily.search(query=query, start_date=start_date, end_date=end_date)
-        except Exception as e:
-            logger.warning(f"⚠️ Tavily Search failed: {e}")
-            self.external_data['tavily'] = None
 
     def run_technical_analysis(self):
         """Runs the technical analysis logic."""
@@ -328,9 +315,6 @@ class StockAnalysisPipeline:
                 "news_announcements": {
                     "news": self.rahavard_data.get('news'),
                     "codal": self.sahamyab_data.get("codal")
-                },
-                "search": {
-                    "tavily": self.external_data.get('tavily')
                 }
             }
 

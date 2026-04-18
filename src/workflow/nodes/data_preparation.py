@@ -113,8 +113,7 @@ async def run_orchestrator(state: AgentState):
             "analysis_date": datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
             "rapid_tweet": symbol_data.get("social_post", {}).get("rapid_tweets", []),
             "latest_sahamyab_tweet": symbol_data.get("social_post", {}).get("latest_sahamyab_tweet", []),
-            "news": symbol_data.get("news_announcements", {}).get("news", []),
-            "search_tavily_answer": symbol_data.get("search", {}).get("tavily", {}).get("answer", "")
+            "news": symbol_data.get("news_announcements", {}).get("news", [])
         }
     }
 

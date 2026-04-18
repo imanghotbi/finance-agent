@@ -206,7 +206,6 @@ async def social_news_consensus_node(state: NewsSocialState, config: RunnableCon
         logger.warning(f"⏳ Social News Consensus waiting for inputs: {missing}")
         return {}
         
-    tavily_answer = state["news_social_data"].get("search_tavily_answer", "")
     symbol = state["news_social_data"].get("symbol", "")
     short_name = state["news_social_data"].get("short_name", "")
     current_date = state["news_social_data"].get("analysis_date", "")
@@ -217,8 +216,7 @@ async def social_news_consensus_node(state: NewsSocialState, config: RunnableCon
         "current_date": current_date,
         "twitter_report": state.get("twitter_report"),
         "sahamyab_report": state.get("sahamyab_report"),
-        "news_report": state.get("news_report"),
-        "tavily_search_narrative": tavily_answer
+        "news_report": state.get("news_report")
     }
 
     user_content = (

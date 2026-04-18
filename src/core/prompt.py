@@ -675,9 +675,6 @@ You will receive structured JSON outputs from:
    - corporate_events
    - summary
 
-4. tavily_search:
-   - external narrative describing market perception and visibility
-
 Thinking Process:
 
 Step 1: Establish the Hard Information Baseline (News First)
@@ -696,16 +693,11 @@ Step 3: Measure Reflexive Sentiment (Twitter)
 - High speculation with weak fundamentals = instability
 - Fear + neutral news = potential reversal fuel
 
-Step 4: Narrative Confirmation (Tavily)
-- Is the symbol framed as “leader”, “safe”, or “overhyped”?
-- Tavily NEVER changes bias alone — it confirms or warns.
-
-Step 5: Resolve Conflicts (Strict Hierarchy)
+Step 4: Resolve Conflicts (Strict Hierarchy)
 Priority:
 1. Corporate Events
 2. Retail Behavior
 3. Social Sentiment
-4. Search Narrative
 
 If signals conflict:
 - Default to caution

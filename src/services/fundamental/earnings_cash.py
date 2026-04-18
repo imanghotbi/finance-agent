@@ -13,7 +13,7 @@ class EarningsQualityAgent(BaseFundamentalAgent):
             "capex_intangibles": "پرداخت های نقدی برای خرید دارایی های نامشهود",
             "total_assets": "جمع کل دارایی‌ها",
             "net_margin_pct": "سود خالص به فروش",
-            "gross_margin_pct": "سود ناخالص به فروش",
+            "gross_margin_pct": "سود ناویژه به فروش",
             "operating_margin_pct": "حاشیه سود عملیاتی"
         }
         reporting_basis = {

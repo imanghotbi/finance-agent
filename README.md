@@ -42,7 +42,6 @@ MONGO_DB_NAME=finance_agent
 
 RAPID_API_KEY=your_rapid_api_key
 PROXY_URL=http://your-proxy-if-needed
-TAVILY_API_KEY=your_tavily_api_key
 
 MODEL_API_KEY=your_model_api_key
 MODEL_BASE_URL=https://api.openai.com/v1
